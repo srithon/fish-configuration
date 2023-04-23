@@ -974,6 +974,76 @@ function runlastscript -a executable
   end
 end
 #+end_src
+** =Notes=
+This setup is intended to keep track of all the different notes files I have on my system.
+The problem it's trying to solve is: I take notes on all of my projects individually, but I don't know where to find them afterwards.
+This has now been made obsolete because I started using Org Mode for everything, and keep all of my notes in ~~/notes/_~.
+#+begin_src fish
+set NOTES_REGISTRY_NAME ".notes_registry.csv"
+set MASTER_NOTES_REGISTRY "$HOME/notes/$NOTES_REGISTRY_NAME"
+
+function registernotes -a NOTES_PATH
+  # see if its already registered
+  set NOTES_PATH (realpath "$NOTES_PATH")
+
+  # see if there is a registry in the current directory
+  if [ -e "./$NOTES_REGISTRY_NAME" ]
+    set -l NOTES_REGISTRY "./$NOTES_REGISTRY_NAME"
+  else
+    # ask user if they want to create a registry in the current directory
+    set -l NOTES_REGISTRY "$MASTER_NOTES_REGISTRY"
+  end
+
+  # quiet, max 1 match
+  if rg -qm1 "$NOTES_PATH\$" "$NOTES_REGISTRY"
+    # already registered
+    echo "Already registered!" > /dev/stderr
+    return 1
+  end
+
+  # otherwise, open file with vim or xdg-open
+  # https://stackoverflow.com/a/53233847
+  if [ (basename "$NOTES_PATH") = "$NOTES_REGISTRY_NAME" ]
+    set EXTENSION 'registry'
+  else
+    set EXTENSION (string split -m1 -r '.' "$NOTES_PATH")[2]
+  end
+
+  echo "$argv[2..] {$EXTENSION}|$NOTES_PATH" >> "$MASTER_NOTES_REGISTRY"
+end
+
+function searchnotes -a NOTES_REGISTRY -a FZF_HEADER
+  # set notes registry to master if none provided
+  # https://stackoverflow.com/questions/54524521/in-fish-shell-how-to-set-a-variable-with-default-fallback
+  test -z "$NOTES_REGISTRY"; and set "$NOTES_REGISTRY" "$MASTER_NOTES_REGISTRY"
+
+  set -l SELECTION (cat "$NOTES_REGISTRY" | fzf --nth 1 -d "|" --height=20)
+
+  if [ "$status" -neq 0 ]
+    # non-zero exit code
+    return 1
+  end
+
+  set -l PATH (echo "$SELECTION" | cut -d "|" -f "2")
+
+  # if selection is a registry (.notes_registry), recurse
+  if [ basename "$SELECTION" = "$NOTES_REGISTRY_NAME" ]
+    set -l DESCRIPTION (echo "$SELECTION" | cut -d "|" -f "1")
+    searchnotes "$SELECTION" "$DESCRIPTION"
+  else
+    # otherwise, open file with vim or xdg-open
+    # https://stackoverflow.com/a/53233847
+    set -l EXTENSION (string split -m1 -r '.' "$PATH")[2]
+
+    switch $EXTENSION
+      case md txt
+        v "$PATH"
+      case '*'
+        xdg-open "$PATH"
+    end
+  end
+end
+#+end_src
 * Environment Variables
 :PROPERTIES:
 :header-args:python: :tangle ./env.fish
