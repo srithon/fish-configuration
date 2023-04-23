@@ -475,6 +475,398 @@ function zsh
     /bin/zsh $argv
 end
 #+end_src
+* Miscellaneous Setups
+:PROPERTIES:
+:header-args:fish: :tangle ./misc_setups.fish
+:END:
+** =School=
+This is a setup for managing different course data and facilitating directory creation/navigation.
+*** ~school_set_class~
+This is a primitive for changing the currently-set "active class".
+It defaults to selecting the current class based on the =Schedule=.
+#+begin_src fish
+function school_set_class
+  # https://stackoverflow.com/questions/56113135/with-sed-or-awk-move-line-matching-pattern-to-bottom-of-file
+  set -l AWK_MOVE_MATCH_LAST_LINE "\$0==\"$(school_get_current_class)\"{lastline=\$0;next}{print $0}END{if (lastline != \"\"){print lastline}}"
+
+  # TODO dynamically calculate height
+  set -l RESPONSE (fd "" --base-directory $CURRENT_GRADE --max-depth 1 | awk "$AWK_MOVE_MATCH_LAST_LINE" | fzf --height=12 --tac)
+
+  if test "$status" -eq 0
+    set -U CLASS_SHORT $RESPONSE
+    set -U CLASS_FULL (realpath $CURRENT_GRADE/$CLASS_SHORT)
+    # https://unix.stackexchange.com/questions/151999/how-to-change-where-a-symlink-points
+    ln -sfn $CLASS_FULL $HOME/Documents/currentClass
+  else
+    return 1
+  end
+end
+#+end_src
+*** ~school_join_zoom~
+~school_join_zoom~ will look for the ~./zoom_link~ file in the class directory and attempt to open the URL inside of it.
+#+begin_src fish
+function school_join_zoom
+  if set -q CLASS_FULL
+    if not test -e $CLASS_FULL
+      echo "Invalid class!"
+      return 1
+    else
+      set -l ZOOM_LINK_PATH "$CLASS_FULL/zoom_link"
+      if test -e $ZOOM_LINK_PATH
+        echo "Opening zoom link for $CLASS_SHORT"
+        spawn firefox (cat $ZOOM_LINK_PATH)
+      else
+        echo "No zoom link available for $CLASS_SHORT!"
+        return 1
+      end
+    end
+  else
+    echo "No class set!"
+    return 1
+  end
+end
+#+end_src
+*** ~school_cd~
+#+begin_src fish
+function school_cd
+  if set -q CLASS_FULL
+    if not cd $CLASS_FULL
+      echo "Invalid class!"
+      return 1
+    end
+  else
+    echo "No class set!"
+    return 1
+  end
+end
+#+end_src
+*** TODO ~school_goto_subdir~
+This is a very involved function for cd'ing (and creating if necessary) subdirectories within class directories, and also date directories.
+_I need to refactor this and extract the date directory creation into another function_.
+#+begin_src fish
+function school_goto_subdir -a BASE_NAME CREATE_DATE_DIR
+  function confirm -a PROMPT
+    read -lP $PROMPT confirmation
+
+    # TODO condense
+    if test "$confirmation" = "y" -o "$confirmation" = "Y";
+      return 0
+    else
+      return 1
+    end
+  end
+
+  function try_create_dir -a CWD DIRNAME CURRENT_DIRNAME
+    # https://stackoverflow.com/questions/31252573/get-current-directory-without-full-path-in-fish-shell
+    if not test -d $CWD/$DIRNAME;
+      if confirm "Create \"$DIRNAME\" directory in \"$CURRENT_DIRNAME\"? (y/n) ";
+        mkdir $CWD/$DIRNAME
+      else
+        return 1
+      end
+    end
+  end
+
+  # see if CLASS is set
+  if set -q CLASS_FULL;
+    # if cant cd into it
+    if not test -d $CLASS_FULL;
+      echo "Invalid class: \"$CLASS_SHORT\""
+      return 1
+    end
+
+    set -l DIRNAME $CLASS_FULL
+
+    if not try_create_dir $DIRNAME $BASE_NAME $CLASS_SHORT
+      return 1
+    end
+
+    set -l DIRNAME $DIRNAME/$BASE_NAME
+
+    if test $CREATE_DATE_DIR -eq 1
+      set -l DATE_DIR (date "+%m-%d-%y")
+
+      # first, check if there is a date dir with the current date
+      set -l DATE_DIRS (fd --max-depth 1 --type directory "$DATE_DIR(_.*)?" "$DIRNAME" | sed -E "s/.*$DATE_DIR(_(.*))?/\\2/")
+
+      set -l EXTRA_INFO ""
+      if test -z "$DATE_DIRS"
+        set EXTRA_INFO (read -P "Would you like extra info in the dirname [or empty]? " | sed -E 's/\s+/-/g')
+      else
+        # select from them
+        # NOTE: if you quote it, it will become space-separated
+        set EXTRA_INFO (string join0 $DATE_DIRS | fzf --height=10 --bind=ctrl-alt-j:print-query --print-query --read0 |
+          sed -E 's/\s+/-/g' | sed -E 's:/$::')
+
+        set FZF_STATUS "$pipestatus[2]"
+
+        # NOTE: fzf will print two lines under normal circumstances:
+        # 1. the query
+        # 2. the selected item
+        # if it prints out two lines, that means that we selected something, and so we should set it to the selected item
+        if test (count $EXTRA_INFO) -eq 2
+          # then, pick the second one
+          set EXTRA_INFO $EXTRA_INFO[2]
+        end
+
+        # if fzf errored out
+        if test "$FZF_STATUS" -eq 2
+          # ctrl-c or escape status
+          or test "$FZF_STATUS" -eq 130
+          return 1
+        end
+      end
+
+      set -l SUBDIR_NAME ""
+      if test -z "$EXTRA_INFO";
+        set SUBDIR_NAME "$DATE_DIR"
+      else
+        set SUBDIR_NAME "$DATE_DIR""_$EXTRA_INFO"
+      end
+
+      if not try_create_dir $DIRNAME $SUBDIR_NAME $CLASS_SHORT/$BASE_NAME;
+        # return 1
+        cd $DIRNAME
+      else
+        cd "$DIRNAME/$SUBDIR_NAME"
+      end
+    else
+      cd $DIRNAME
+    end
+  else;
+    echo "Current class not set!"
+    return 1
+  end
+end
+#+end_src
+*** ~school_fzf_filter_cd_subdirectory~
+This function is the user-facing side of ~school_goto_subdir~.
+It offers an ~fzf~ menu for ~cd~'ing to a predefined list of subdirectories, as well as the directories already in the school directory.
+It will also create directories that do not already exist.
+#+begin_src fish
+function school_fzf_filter_cd_subdirectory -a CREATE_DATE_DIR
+  # list only directories
+  # set -l directories (fd -td -d1 $CLASS_FULL)
+  # https://stackoverflow.com/questions/8518750/to-show-only-file-name-without-the-entire-directory-path
+  set -l directories (find $CLASS_FULL -maxdepth 1 ! -path $CLASS_FULL -type d | xargs -n 1 basename)
+
+  for i in "homework" "classwork" "tests" "notes"
+    if not test -d $CLASS_FULL/$i
+      set -a directories "* $i"
+    end
+  end
+
+  # only look at the last line
+  set -l target (string join \n $directories | fzf --height=10 --print-query | tail -n 1)
+  # echo "Target is $target"
+
+  # string is empty
+  # means that the user hit escape to exit
+  if test -z "$target"
+    return 1
+  else
+    # if it starts with a *, get rid of it
+    set -l target_processed (string match -r "\* (.*)" "$target" | tail -n 1)
+
+    if test -z "$target_processed"
+      school_goto_subdir "$target" "$CREATE_DATE_DIR"
+    else
+      school_goto_subdir "$target_processed" "$CREATE_DATE_DIR"
+    end
+  end
+end
+#+end_src
+*** ~school_open_notes~
+#+begin_src fish
+function school_open_notes
+  e $CLASS_FULL/notes/(string lower $CLASS_SHORT)_notes.org
+end
+#+end_src
+*** Schedule Processing
+The following functions process the schedule.
+
+This is a helper function for converting 24H time to minutes.
+#+begin_src fish
+function __school_time_to_minutes -a TIME
+  set -l SPLIT_TIME (string split ':' $TIME)
+  math "$SPLIT_TIME[1] * 60 + $SPLIT_TIME[2]"
+end
+#+end_src
+
+**** ~__school_compute_schedules~
+This function goes through all of the ~.schedule~ files within each course directory and assembles a chronological order of courses for each day.
+It stores these day-by-day schedules in ~$COURSE_SCHEDULE_<Day>~.
+
+*NOTE*: This function must be called manually anytime the schedules are changed.
+#+begin_src fish
+function __school_compute_schedules
+  # first, clear existing schedules
+  set -l DAY_NAMES Monday Tuesday Wednesday Thursday Friday
+  for day_name in $DAY_NAMES
+    set -e "COURSE_SCHEDULE_"$day_name
+  end
+
+  # iterate through all current classes and see if there's a schedule
+  #
+  # https://stackoverflow.com/questions/13525004/how-to-exclude-this-current-dot-folder-from-find-type-d.
+  # by default, when searching with the type `d`, the current directory (.) is included. to get rid of it, we add `mindepth 1`.
+  # `-type l -xtype d` filters for symlinks to directories.
+  # `-a` is an AND combinator.
+  # `-o` is an OR combinator.
+  # like in every language, (I assume) that `and` has lower precedence than `or`, meaning that this expression is equivalent to (a & (b | c))
+  for course in (find "$CURRENT_GRADE" -mindepth 1 -a -type l -xtype d -o -type d)
+    set -l COURSE_NAME (path basename "$course")
+    set -l SCHEDULE_PATH "$CURRENT_GRADE/$COURSE_NAME/.schedule"
+
+    # now, let's load the current schedule file, if it exists
+    if test -n "$SCHEDULE_PATH"
+      for line in (cat "$SCHEDULE_PATH" | string split '\n');
+        set -l WORDS (string split ' ' "$line")
+        set -l DAYS (string split ',' "$WORDS[1]")
+        set -l TIME (string split '-' "$WORDS[2]")
+
+        set -l PROCESSED_TIME (__school_time_to_minutes "$TIME[1]") (__school_time_to_minutes "$TIME[2]")
+
+        for day in $DAYS
+          set -l DAY_VARNAME "COURSE_SCHEDULE_""$day"
+
+          set -fa "$DAY_VARNAME" "$PROCESSED_TIME $COURSE_NAME"
+        end
+      end
+    end
+  end
+
+  # now, let's sort each schedule
+  for day_name in $DAY_NAMES
+    set -l DAY_VARNAME "COURSE_SCHEDULE_""$day_name"
+
+    set -U $DAY_VARNAME (sort -n (string join \n $$DAY_VARNAME[1] | psub) | string split ' ')
+  end
+end
+#+end_src
+
+**** ~school_get_current_class~
+This function gets the current class based on the time and day.
+#+begin_src fish
+function school_get_current_class -a CURRENT_TIME -a CURRENT_DAY
+  if test -z "$CURRENT_TIME"
+    # %R: 24-hour hour and minute
+    set -f CURRENT_TIME (__school_time_to_minutes (date "+%R"))
+  end
+
+  if test -z "$CURRENT_DAY"
+    set -f CURRENT_DAY (date "+%A")
+  end
+
+  set -l DAY_VARNAME "COURSE_SCHEDULE_""$CURRENT_DAY"
+
+  if test -z "$$DAY_VARNAME"
+    # no class today
+    return 1
+  end
+
+  set -l DAY_LIST $$DAY_VARNAME
+  # how many minutes after the end of class are you still in the class for?
+  set -l MINUTES_LEEWAY 1
+  # now, iterate through the courses in the day until we find one that matches
+  for index in (seq 1 3 (math "$(count $DAY_LIST)" - 1))
+    set -l TIME_RANGE "$DAY_LIST[$index]" "$DAY_LIST[$(math $index + 1)]"
+
+    # don't check the start time at all so that we can go to class early
+    if test $CURRENT_TIME -le (math "$TIME_RANGE[2] + $MINUTES_LEEWAY")
+      echo "$DAY_LIST[$(math $index + 2)]"
+      return 0
+    end
+  end
+
+  return 1
+end
+#+end_src
+
+**** ~school_get_previous_class~
+This function gets the previous class based on the time and day.
+#+begin_src fish
+function school_get_previous_class -a CURRENT_TIME -a CURRENT_DAY
+  if test -z "$CURRENT_TIME"
+    # %R: 24-hour hour and minute
+    set -f CURRENT_TIME (__school_time_to_minutes (date "+%R"))
+  end
+
+  if test -z "$CURRENT_DAY"
+    set -f CURRENT_DAY (date "+%A")
+  end
+
+  set -l DAY_VARNAME "COURSE_SCHEDULE_""$CURRENT_DAY"
+
+  if test -z "$$DAY_VARNAME"
+    # no class today
+    return 1
+  end
+
+  set -l DAY_LIST $$DAY_VARNAME
+  # how many minutes after the end of class are you still in the class for?
+  set -l MINUTES_LEEWAY 1
+  # now, iterate through the courses in the day until we find one that matches
+  for index in (seq 1 3 (math "$(count $DAY_LIST)" - 1))
+    set -l TIME_RANGE "$DAY_LIST[$index]" "$DAY_LIST[$(math $index + 1)]"
+
+    # don't check the start time at all so that we can go to class early
+    if test $CURRENT_TIME -le (math "$TIME_RANGE[2] + $MINUTES_LEEWAY")
+      set -l PREVIOUS_CLASS_INDEX (math $index - 1)
+
+      if test "$PREVIOUS_CLASS_INDEX" -lt 1
+        # set it to the first class
+        set PREVIOUS_CLASS_INDEX 3
+      end
+
+      echo "$DAY_LIST[$PREVIOUS_CLASS_INDEX]"
+      return 0
+    end
+  end
+
+  return 1
+end
+#+end_src
+*** Aliases
+#+begin_src fish
+# change current class
+alias _sc="school_set_class"
+
+# go to current class
+alias scd="school_cd"
+
+# change current class and go to current class
+alias _scd="school_set_class && school_cd"
+
+# go to current class's notes/homework/classwork/tests directory
+alias scf="school_fzf_filter_cd_subdirectory 0"
+
+# change current class and go to current class's notes/homework/classwork/tests directory
+alias _scf="school_set_class && scf"
+
+# go to current class's notes/homework/classwork/tests directory, make current date directory
+alias scfd="school_fzf_filter_cd_subdirectory 1"
+
+# change current class and go to current class's notes/homework/classwork/tests directory, make current date directory
+alias _scfd="school_set_class && scfd"
+
+# join current class's zoom link
+# CLASS_DIR/zoom_link
+alias sjz="school_join_zoom"
+
+# change current class and join current class's zoom link
+# CLASS_DIR/zoom_link
+alias _sjz="school_set_class && school_join_zoom"
+
+# NOTE: added `p` to the end because `scp` is already a program
+alias scpr='echo Current class is \"$CLASS_SHORT\"'
+
+# open notes for current class
+alias scn="school_open_notes"
+
+# change current class and open notes for current class
+alias _scn="school_set_class && school_open_notes"
+#+end_src
 * Environment Variables
 :PROPERTIES:
 :header-args:python: :tangle ./env.fish
