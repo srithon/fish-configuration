@@ -1176,8 +1176,45 @@ end
 #+end_src
 * Environment Variables
 :PROPERTIES:
-:header-args:python: :tangle ./env.fish
+:header-args:fish: :tangle ./env.fish
 :END:
+
+#+begin_src fish
+set YARN_BIN "$HOME/.yarn/bin"
+set MANPATH /usr/share/man ~/.local/share/man/
+
+set -gx GEM_HOME ~/.gem
+
+set CUSTOM_PATHS ~/bin ~/.emacs.d/bin ~/.ghcup/bin ~/.npm/bin ~/.cargo/bin ~/.local/bin ~/go/bin ~/Packages/language-servers/Binaries $YARN_BIN ~/.gem/ruby/3.0.0/bin
+
+set -x DOCKER_HOST "unix:///run/user/1000/docker.sock"
+set -x DOCKER_BIN ~/.local/bin
+
+if set -q _OLD_VIRTUAL_PATH
+  set PATH $VIRTUAL_ENV/bin $_OLD_VIRTUAL_PATH
+else
+  set PATH $CUSTOM_PATHS $PATH
+end
+
+set VISUAL nvim
+set EDITOR "$VISUAL"
+
+# https://medium.com/@sidneyliebrand/how-fzf-and-ripgrep-improved-my-workflow-61c7ca212861
+set -gx FZF_DEFAULT_COMMAND 'fd --type file --no-ignore-vcs --hidden'
+set -gx FZF_CTRL_T_COMMAND 'fd --type file --no-ignore-vcs --hidden'
+set GOPATH "$HOME/go"
+set JAVA_HOME /usr/lib/jvm/java-8-openjdk/
+set -gx BD_OPT 'insensitive'
+
+
+set -gx STACK_ROOT "$HOME/.config/stack"
+
+set -gx CURRENT_GRADE "$HOME/Documents/school/college2/spring-classes"
+set -gx SCRIPTS_PATH "$HOME/Development/Scripts/single-use"
+
+# this is needed for Unity to work properly on my system
+set -gx FrameworkPathOverride /lib/mono/4.5
+#+end_src
 * Plugin Configuration
 :PROPERTIES:
 :header-args:python: :tangle ./plugin_config.fish
