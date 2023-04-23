@@ -75,8 +75,406 @@ fzf_key_bindings
 #+end_src
 * Functions
 :PROPERTIES:
-:header-args:python: :tangle ./functions.fish
+:header-args:fish: :tangle ./functions.fish
 :END:
+** Pure Aliases
+=Pure= aliases do not depend on any other functions/aliases in my configuration.
+They go on the top so that the rest of the config can use them.
+*** ~ls~
+#+begin_src fish
+alias ls="exa"
+alias l="ls -l"
+alias la="l -a"
+#+end_src
+*** ~nvim~
+#+begin_src fish
+alias v="nvim"
+alias v4="/home/sridaran/Packages/neovim/nvim0-4-4.appimage"
+alias v5="nvim"
+
+# runs with no history
+alias incv="v -i NONE"
+#+end_src
+*** ~grep~
+#+begin_src fish
+alias grep="rg"
+#+end_src
+*** ~docker~
+I use ~podman~ instead of ~docker~, but typing ~docker~ is nicer for muscle memory.
+#+begin_src fish
+alias docker="podman"
+#+end_src
+*** ~zfs~
+This is a simple alias for listing out the snapshots on the current system.
+Because it's an alias, you can specify a dataset afterwards to get the snapshots for the given dataset.
+Also, ~fish~ uses the completions from the underlying command, so it will autocomplete the datasets!
+#+begin_src fish
+alias snapshots="zfs list -t snapshot"
+#+end_src
+*** ~termshot~
+For some reason I don't trust this program, so I setup this alias to always run it in ~firejail~.
+#+begin_src fish
+alias termshot='firejail --quiet termshot'
+#+end_src
+*** ~shutdown~
+I have ~shutdown~ aliased to first prompt to send my snapshots to my backup server before shutting down.
+#+begin_src fish
+function zfs_sync_and_shutdown -d "Prompts for ZFS sync and then shuts down"
+    sudo ~/Development/General/kalavara/send_snapshots.sh && /sbin/shutdown now
+end
+
+alias shutdown="zfs_sync_and_shutdown"
+#+end_src
+** System Introspection
+These functions yield information about the system from the terminal.
+*** ~memof~
+#+begin_src fish
+function memof -a PROGRAM_NAME -d "Sums the memory usage of all matching processes"
+    procs $PROGRAM_NAME 2>/dev/null | tail -n "+3" | awk '{sum += $5} END { print sum }'
+end
+#+end_src
+*** ~get_volume~
+#+begin_src fish
+function get_volume
+    amixer -M get Master | rg -m1 '\[(\d+)%\]' --only-matching -r '$1'
+end
+#+end_src
+*** ~battery~
+#+begin_src fish
+function battery -d "Displays the current battery status"
+    set -l charge (cat /sys/class/power_supply/BAT0/capacity)
+    # $status is a protected Fish variable
+    set -l bat_status (cat /sys/class/power_supply/BAT0/status)
+    set -l capacity_level (cat /sys/class/power_supply/BAT0/capacity_level)
+    echo "$charge"% "[$capacity_level]" "[$bat_status]"
+end
+#+end_src
+** Desktop Application Launcher
+*** Emacs
+Let's write a helper function for invoking emacs so that we don't have to worry about the idiosyncracies of the ~emacsclient~ CLI.
+#+begin_src fish
+function _open_emacs -a OPEN_GUI -a MAKE_NEW_FRAME
+    # because this is a FUNCTION and not a BINARY, $argv will not contain the name of the function
+    # NOTE $OPEN_GUI and $MAKE_NEW_FRAME are counted inside of $argv, so we have to increment by 1
+    if [ (count $argv) -eq 2 ]
+        set FILES "."
+    else
+        set FILES $argv[3..]
+    end
+
+    # couldn't figure out how to get --create-frame and $FILES to be interpreted as 2 separate arguments
+    # they needed to be concatenated without a space between the variables
+    if [ "$OPEN_GUI" -eq 1 ]
+        if [ "$MAKE_NEW_FRAME" -eq 1 ]
+            set -f CREATE_FRAME "--create-frame"
+        else
+            set -f CREATE_FRAME ""
+        end
+
+        emacsclient "$CREATE_FRAME" --no-wait $FILES
+    else
+        emacsclient $FILES
+    end
+end
+#+end_src
+
+Our core function will be ~open_emacs_gui~, which will enable us to choose whether we want to open our file in an existing ~emacs~ window, or whether we want a new one to be created.
+#+begin_src fish
+function open_emacs_gui
+    argparse --ignore-unknown --stop-nonopt --name=open_emacs_gui 'h/help' 'e/existing' -- $argv
+
+    if set -q _flag_help
+        echo "Usage: $0 [-e/--existing] [files...]" > /dev/stderr
+        return 1
+    end
+
+    set -q _flag_existing; and set MAKE_NEW_FRAME 0; or set MAKE_NEW_FRAME 1
+
+    spawn fish -c "_open_emacs 1 $MAKE_NEW_FRAME $argv"
+end
+#+end_src
+
+To make things easier to call, we will alias ~e~ to ~open_emacs_gui~, since we will be using that one the most often, and ~et~ to opening ~emacs~ in the terminal.
+#+begin_src fish
+# open in gui
+alias e="open_emacs_gui"
+
+# open in terminal
+alias et="_open_emacs 0 0"
+#+end_src
+*** Dolphin
+This is a simple function for opening ~dolphin~, defaulting to the current directory.
+By default, running the ~dolphin~ binary without arguments will open it in the home directory, which is rarely what we want.
+#+begin_src fish
+function _open_dolphin --wraps dolphin
+    if [ (count $argv) -eq 0 ]
+        spawn dolphin .
+    else
+        spawn dolphin $argv
+    end
+end
+#+end_src
+
+Let's set the ~d~ alias to make it more convenient to use it.
+#+begin_src fish
+alias d="_open_dolphin"
+#+end_src
+*** Krita
+Here, we define ~newkrita~, which is a function that clones a default canvas template, saves it to the target path, and opens ~krita~ on that file.
+Admittedly, I don't remember why, but this is more convenient than trying to open a non-existent file in Krita.
+#+begin_src fish
+# NOTE we were getting an error because the argument to newkrita was named "PATH"
+# this "PATH" was overriding the PATH variable
+function newkrita -a TARGET_PATH
+  /home/sridaran/Development/Scripts/fish/krita/new_krita.fish "$TARGET_PATH"
+  spawn krita "$TARGET_PATH"
+end
+#+end_src
+** Desktop Utilities
+*** PDF Utilities
+This function converts a PDF to a vertical image, which all of the pages stacked.
+#+begin_src fish
+function pdftoimagevertical -a PDF_FILE -a IMAGE_NAME -d "Converts a pdf to a single image"
+    set -l temp_root (mktemp -d)
+    set -l pdf_name (basename "$PDF_FILE")
+    set -l ppm_root "$temp_root/$PDF_FILE"
+
+    pdftoppm "$PDF_FILE" "$ppm_root"
+    convert "$temp_root"/* -append "$IMAGE_NAME"
+
+    rm "$temp_root"/*
+    rmdir "$temp_root"
+end
+#+end_src
+*** XWindows Utilities
+**** ~xdotool~ helpers
+This alias enables you to programmatically type a string, with a builtin delay to leave the terminal.
+#+begin_src fish
+alias xtype="sleep 2; xdotool type -- "
+#+end_src
+**** Clipboard functions
+This is a function which allows us to display clipboard contents, as well as easily pipe into the clipboard.
+#+begin_src fish
+function clipboard
+    if isatty stdin
+        # if stdin is not connected to a PIPE, output current clipboard
+        xsel --clipboard
+    else
+        # if stdin IS connected to a pipe, read input into clipboard
+        xclip -selection c -r
+    end
+end
+#+end_src
+
+The ~copy~ alias allows you to pipe the results of a command into the clipboard, while also displaying the output to ~stdout~.
+#+begin_src fish
+alias copy='tee /dev/tty | clipboard'
+#+end_src
+*** KDE Utilities
+This function enables/disables the touchpad.
+#+begin_src fish
+function touchpad_toggle
+    # https://www.reddit.com/r/kde/comments/dnx4dh/disable_touchpad_when_mouse_is_connected/?sort=top
+    qdbus org.kde.kded5 /modules/touchpad org.kde.touchpad.toggle
+end
+#+end_src
+*** TODO Change Audio
+#+begin_src fish
+function change-audio -d "Prompts for a change in audio output + volume"
+    # features:
+    # 1. name
+    # 2. volume->front-left->value_percent: "10%"
+    # 3. ports
+    #   - (name, description); probably use description for display
+    # 4. active_port
+    set -l filtered_data (pactl -f json list sinks | jq "select(map(.name == \"$default_sink\")) | first | {volume: .volume.\"front-left\".value_percent, ports: (.ports | map({name, description})), active_port}")
+
+    set -l volume (echo "$filtered_data" | jq '.volume')
+    set -l ports (echo "$filtered_data" | jq '.ports | map("\(.name):\(.description)") | join("\n")')
+    set -l active_port (echo "$filtered_data" | jq '.active_port')
+end
+#+end_src
+*** Recording Videos
+#+begin_src fish
+function record -a TARGET -d "Convenience function for using simplescreenrecorder and moving the resulting recording to a target file"
+  simplescreenrecorder > /dev/null 2> /dev/null
+
+  if test -z "$TARGET"
+    set -l DATE (date "+%F_%T")
+    set -l TARGET "$DATE"
+  end
+
+  set -l TARGET "$TARGET.mkv"
+
+  mv /home/sridaran/Videos/simplescreenrecorder.mkv "$TARGET"
+end
+#+end_src
+** Convenience Functions
+*** Math Functions
+These are pretty much never useful but I keep them around for fun.
+#+begin_src fish
+function hypotenuse
+    qalc "sqrt(($argv[1])^2 + ($argv[2]^2))"
+end
+
+function simplify
+  qalc $argv[1..-1] | awk -F "=|≈" '{print $(NF-1)}' | string trim
+end
+
+alias integrate='qalc -c integrate'
+alias derivative='qalc -c derivative'
+#+end_src
+*** Static Shortcuts
+~schedule~ opens my college schedule in an image viewer.
+#+begin_src fish
+function schedule
+    spawn feh "$CURRENT_GRADE/../currentSchedule.png"
+end
+#+end_src
+
+~address~ prints out my apartment's address to ~stdout~.
+#+begin_src fish
+function address
+    cat "$CURRENT_GRADE/../address"
+end
+#+end_src
+
+~resume~ displays my latest resume in a PDF viewer.
+#+begin_src fish
+function resume
+    spawn okular ~/Documents/Resumes/CMSC-2022/exports/SridaranThoniyil.pdf
+end
+#+end_src
+
+~blackscreen~ launches a ~feh~ image viewer to black out a screen.
+#+begin_src fish
+alias blackscreen='feh --hide-pointer --class blackscreen ~/Documents/General/blackImage.png'
+#+end_src
+*** Shell Shortcuts
+**** ~spawn~
+~spawn~ is an extraordinary useful function for running a command and detaching it from the terminal.
+#+begin_src fish
+function spawn
+    disown ($argv[1..-1] </dev/null &>/dev/null &)
+end
+#+end_src
+
+Because I use it so often, it's useful to have an auto-expanding abbreviation for it.
+#+begin_src fish
+abbr --add s spawn
+#+end_src
+**** ~mkdirc~
+#+begin_src fish
+function mkdirc -d "Makes a directory and cds into it at the same time" -a DIRECTORY
+    mkdir -p "$DIRECTORY" && cd "$DIRECTORY"
+end
+#+end_src
+**** ~jrunc~
+#+begin_src fish
+function jrunc
+  jrun -c $argv
+end
+#+end_src
+**** ~jrun~
+#+begin_src fish
+function jrun
+  argparse 'a/asserts' 'c/compile' -- $argv
+
+  set JAVA_COMMAND "java"
+  if not test -z "$_flag_asserts"
+    set -a JAVA_COMMAND "-ea"
+  end
+
+  set -a JAVA_COMMAND (echo "$argv[1]" | cut -d "." -f 1) $argv[2..-1]
+
+  if not test -z "$_flag_compile"
+    javac "$argv[1]" || return 1
+  end
+
+  $JAVA_COMMAND
+end
+#+end_src
+*** ~pagetitle~
+#+begin_src fish
+function pagetitle -a URL -d "Gets the title of the webpage linked to the provided URL"
+    # -s makes it not print out error message once pipe closes
+    curl -Ls "$URL" |
+        # max 1 match; after 1 match it closes the pipe
+        # .* is in a capture group
+        # -r is "replace"; it replaces the match with the first explicit capture group '$1' before printing
+        rg -m 1 '<title>(.*)</title>' -r '$1' |
+        # trims the whitespace from the matched text
+        string trim
+end
+#+end_src
+*** ~templink~
+~templink~ creates a symbolic link to the specified directory at ~~/TEMP_LINK~.
+This makes it easy to find directories from GUIs.
+#+begin_src fish
+function templink
+    # NOTE can't have quotes around argv, otherwise it will register as single argument
+    set length (count $argv)
+
+    # current directory
+    if [ $length -eq 0 ]
+        set target (realpath .)
+    else
+        set target (realpath "$argv[1]")
+    end
+
+    # https://superuser.com/questions/645842/how-to-overwrite-a-symbolic-link-of-a-directory
+    # without the -n flag, it will dereference the symlink first
+    # WITH the -n flag, it treats the link as a file and overwrites it normally
+    ln -snf "$target" "$TEMP_LINK_NAME"
+end
+#+end_src
+
+Because I use it so often, it's useful to have an auto-expanding abbreviation for it.
+#+begin_src fish
+abbr --add tl templink
+#+end_src
+*** ~tempdir~
+#+begin_src fish
+function tempdir -d "Creates a temporary directory at /tmp/$DIRNAME, cd'ing into it if used interactively; if $DIRNAME is multiple words, they are joined with camelCase"
+    set DIRNAME (echo "$argv" | sed -r 's/ (.)/\\U\\1/g')
+    set DIRNAME "/tmp/$DIRNAME"
+
+    mkdir -p "$DIRNAME" >/dev/null
+    echo "$DIRNAME"
+
+    if isatty stdout
+        cd "$DIRNAME"
+    end
+end
+#+end_src
+*** ~tempclone~
+#+begin_src fish
+function tempclone -d "Clones git repository into a temporary directory" -a REPO_URL DIRNAME
+    if test -z "$REPO_URL"
+        echo "Please pass in the url of the repository!" > /dev/stderr
+        return 1
+    end
+
+    if test -z "$DIRNAME"
+        set -f DIRNAME (basename "$REPO_URL")
+    end
+
+    set -f FULL_REPO_PATH "/tmp/tempclones/$DIRNAME"
+    mkdir -p "$FULL_REPO_PATH"
+
+    git clone "$REPO_URL" "$FULL_REPO_PATH"
+
+    cd "$FULL_REPO_PATH"
+end
+#+end_src
+** Miscellaneous Functions
+Because our default shell is ~zsh~... actually nevermind, we'll see
+#+begin_src fish :tangle no
+function zsh
+    set -x NO_EXEC_FISH 1
+    /bin/zsh $argv
+end
+#+end_src
 * Environment Variables
 :PROPERTIES:
 :header-args:python: :tangle ./env.fish
