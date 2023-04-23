@@ -166,12 +166,12 @@ function _open_emacs -a OPEN_GUI -a MAKE_NEW_FRAME
     # they needed to be concatenated without a space between the variables
     if [ "$OPEN_GUI" -eq 1 ]
         if [ "$MAKE_NEW_FRAME" -eq 1 ]
-            set -f CREATE_FRAME "--create-frame"
+            set -f ARGS "--create-frame --no-wait"
         else
-            set -f CREATE_FRAME ""
+            set -f ARGS "--no-wait"
         end
 
-        emacsclient "$CREATE_FRAME" --no-wait $FILES
+        emacsclient $ARGS $FILES
     else
         emacsclient $FILES
     end
@@ -190,7 +190,9 @@ function open_emacs_gui
 
     set -q _flag_existing; and set MAKE_NEW_FRAME 0; or set MAKE_NEW_FRAME 1
 
-    spawn fish -c "_open_emacs 1 $MAKE_NEW_FRAME $argv"
+    echo $argv
+
+    fish -c "_open_emacs 1 $MAKE_NEW_FRAME $argv"
 end
 #+end_src
 
