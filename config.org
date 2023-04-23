@@ -867,6 +867,38 @@ alias scn="school_open_notes"
 # change current class and open notes for current class
 alias _scn="school_set_class && school_open_notes"
 #+end_src
+** =Shell uptime=
+Let's set the start time as a variable, so we can see how long our shell has been running.
+#+begin_src fish
+set -g SHELL_START_TIME (date +%s)
+#+end_src
+
+This is an alias which pretty-prints our start time variable.
+#+begin_src fish
+alias shell_start_time='date -d @$SHELL_START_TIME +"%m-%d-%y %r"'
+#+end_src
+
+This function computes the time elapsed since the shell was launched.
+#+begin_src fish
+function shell_uptime
+  set -l CURRENT_TIME (date +%s)
+  set -l TIME_ELAPSED (math "$CURRENT_TIME - $SHELL_START_TIME")
+
+  set -l SECONDS $TIME_ELAPSED
+  set -l SECONDS_REAL (math $TIME_ELAPSED % 60)
+
+  set -l MINUTES_TOTAL (math "$SECONDS / 60")
+  set -l MINUTES_REAL (math "floor($SECONDS / 60) % 60")
+
+  set -l HOURS_TOTAL (math "$MINUTES_TOTAL / 60")
+  set -l HOURS_REAL (math "floor($MINUTES_TOTAL / 60) % 60")
+
+  # set -l DAYS (math "$HOURS_TOTAL / 24")
+  set -l DAYS_REAL (math "floor($HOURS_TOTAL / 24) % 24")
+
+  echo "$DAYS_REAL days, $HOURS_REAL hours, $MINUTES_REAL minutes, $SECONDS_REAL seconds"
+end
+#+end_src
 * Environment Variables
 :PROPERTIES:
 :header-args:python: :tangle ./env.fish
