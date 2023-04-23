@@ -1140,6 +1140,40 @@ function _encvi_fish_impl -a FILE
   end
 end
 #+end_src
+** =at-improved=
+*** ~do-in~
+~do-in~ runs a command in a certain amount of time.
+Usage: ~do-in 5m "echo hello world"~
+#+begin_src fish
+function do-in
+  set matches (string match -r "(\d+)(\w+)" "$argv[1]")
+
+  switch $matches[3]
+    case "m*"
+      set b "minutes"
+    case 'h*'
+      set b 'hour'
+    case '*'
+      exit 1
+  end
+
+  echo "$argv[2] \"$argv[3]\" \"$argv[4]\"" | at "now + $matches[2]$b"
+end
+#+end_src
+*** ~remindin~
+This is a specialization of ~do-in~ which uses ~notify-send~ to display a notification after a certain amount of time.
+#+begin_src fish
+function remindin
+  do-in "$argv[1]" "notify-send -u critical" "$argv[2]" "$argv[3..-1]"
+end
+#+end_src
+*** ~remindat~
+This function is like ~remindin~, except it takes in an absolute time rather than a relative time.
+#+begin_src fish
+function remindat
+  echo "notify-send -u critical \"$argv[2]\" \"$argv[3..-1]\"" | at "$argv[1]"
+end
+#+end_src
 * Environment Variables
 :PROPERTIES:
 :header-args:python: :tangle ./env.fish
