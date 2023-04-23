@@ -1,5 +1,11 @@
 #+title: Fish Configuration
+#+PROPERTY: :header-args:fish: :noweb yes
 
+* Preprocessor Constants
+#+NAME: CONFIG_ROOT
+#+begin_src fish
+/home/sridaran/.config/fish
+#+end_src
 * Startup Code
 :PROPERTIES:
 :header-args:python: :tangle ./config.fish
