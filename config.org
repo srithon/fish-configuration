@@ -1095,6 +1095,51 @@ function exercism --wraps $EXERCISM_BINARY_PATH
   end
 end
 #+end_src
+** =Encryption=
+This setup consists of a series of functions for editing/viewing encrypted files.
+*** ~encstream~
+This streams encrypted videos into ~vlc~.
+#+begin_src fish
+function encstream -a FILE
+  gpg -qd --no-symkey-cache "$FILE" | vlc -
+end
+#+end_src
+*** ~encpager~
+This function pages encrypted files using ~less~.
+#+begin_src fish
+function encpager -a FILE
+  gpg -qd --no-symkey-cache "$FILE" | less
+end
+#+end_src
+*** ~_encvi_fish_impl~
+This is a rudimentary and insecure version of my ~encvi~ program for editing encrypted files.
+The issue with this version is that it uses ~vipe~, which works by writing files to ~/tmp~, where they are globally visible.
+#+begin_src fish
+function _encvi_fish_impl -a FILE
+  # https://github.com/dideler/fish-read-silent/blob/master/read_silent.fish
+  # https://github.com/fish-shell/fish-shell/issues/838#issuecomment-118206906
+  stty -echo
+  head -n 1 | read -slP "Password: " password > /dev/null
+  stty echo
+
+  # incognito mode
+  set -lx EDITOR "nvim -i NONE"
+
+  # https://github.com/fish-shell/fish-shell/issues/1147
+  # don't split contents on spaces/newlines
+  set -lx IFS ''
+  set -l --long TEXT (if test -e "$FILE"; gpg -qd --no-symkey-cache --batch --passphrase "$password" "$FILE" 2> /dev/null; else; echo ""; end)
+
+  if test $status -ne 0
+    echo "Incorrect password!"
+    return 1
+  else
+    echo  "$TEXT" |
+    vipe |
+    gpg -qc --yes --no-symkey-cache --batch --passphrase "$password" --output "$FILE"
+  end
+end
+#+end_src
 * Environment Variables
 :PROPERTIES:
 :header-args:python: :tangle ./env.fish
