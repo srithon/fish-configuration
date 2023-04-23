@@ -1,0 +1,22 @@
+#+title: Fish Configuration
+
+* Startup Code
+:PROPERTIES:
+:header-args:python: :tangle ./config.fish
+:END:
+** Initializing Plugins
+** Set Fish Greeting
+** Sourcing External Files
+Let's source all ~fish~ files under our ~custom-functions~ directory, for things that are not tracked under our Literate configuration.
+* Functions
+:PROPERTIES:
+:header-args:python: :tangle ./functions.fish
+:END:
+* Environment Variables
+:PROPERTIES:
+:header-args:python: :tangle ./env.fish
+:END:
+* Plugin Configuration
+:PROPERTIES:
+:header-args:python: :tangle ./plugin_config.fish
+:END:
