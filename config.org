@@ -1062,6 +1062,39 @@ function check_path_exists -a VRC_PATH
   end
 end
 #+end_src
+** =exercism= wrapper
+Here, we override the ~download~ subcommand for the ~exercism~ CLI.
+I believe it's because (this was a while ago) ~exercism~ downloads everything into a static path, but I like choosing where my files go.
+This version of ~exercism~ allows you to download challenges to the current directory.
+#+begin_src fish
+set EXERCISM_BINARY_PATH "/usr/bin/exercism"
+
+# wrap the exercism CLI with custom 'download' behavior
+function exercism --wraps $EXERCISM_BINARY_PATH
+  if [ $argv[1] = "download" ]
+    # save output to variable
+    set -l DOWNLOAD_PATH ($EXERCISM_BINARY_PATH $argv 2> /dev/null)
+
+    # if success
+    if [ $status -eq 0 ]
+      # move
+      mv $DOWNLOAD_PATH .
+
+      set -l CHALLENGE_NAME (basename (realpath $DOWNLOAD_PATH))
+      set -l TRACK_PATH (dirname (realpath $DOWNLOAD_PATH))
+
+      rmdir $TRACK_PATH
+
+      echo "Downloaded to $CHALLENGE_NAME"
+    else
+      echo $OUTPUT
+      return $status
+    end
+  else
+    $EXERCISM_BINARY_PATH $argv
+  end
+end
+#+end_src
 * Environment Variables
 :PROPERTIES:
 :header-args:python: :tangle ./env.fish
