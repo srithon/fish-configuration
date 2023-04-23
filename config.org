@@ -1217,5 +1217,5 @@ set -gx FrameworkPathOverride /lib/mono/4.5
 #+end_src
 * Plugin Configuration
 :PROPERTIES:
-:header-args:python: :tangle ./plugin_config.fish
+:header-args:fish: :tangle ./plugin_config.fish
 :END:
