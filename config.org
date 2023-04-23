@@ -899,6 +899,81 @@ function shell_uptime
   echo "$DAYS_REAL days, $HOURS_REAL hours, $MINUTES_REAL minutes, $SECONDS_REAL seconds"
 end
 #+end_src
+** =Scripts=
+This is a setup for easily storing one-off scripts.
+
+*** ~newscript~
+First, ~newscript~ creates a new script with a random name based on the parameters.
+#+begin_src fish
+function newscript
+  # newscript filename extension
+  # newscript extension
+
+  set random_characters (cat /dev/urandom | tr -cd '[:alnum:]' | head -c 16)
+
+  if not test -z "$argv[2]"
+    set filename "$argv[1]-$random_characters"
+    set extension "$argv[2]"
+  else
+    set filename "$random_characters"
+    set extension "$argv[1]"
+  end
+
+  set full_filename "$filename.$extension"
+
+  v "$SCRIPTS_PATH/$full_filename"
+
+  chmod +x "$SCRIPTS_PATH/$full_filename"
+end
+#+end_src
+
+*** ~get_last_script~
+~get_last_script~ yields the filename of the latest created script.
+#+begin_src fish
+function get_last_script
+  set file (ls -t "$SCRIPTS_PATH" | head -n1)
+
+  if not test -z "$file"
+    set file "$SCRIPTS_PATH/$file"
+  end
+
+  echo "$file"
+end
+#+end_src
+
+*** ~scripts~
+~scripts~ uses ~fzf~ to filter through the scripts, opening the selected one in ~nvim~.
+#+begin_src fish
+function scripts
+  set file (ls -t "$SCRIPTS_PATH" | fzf --preview 'bat --color "always" $SCRIPTS_PATH/{}' --preview-window=right:80%)
+
+  if test "$status" -eq 0
+    v "$SCRIPTS_PATH/$file"
+  end
+end
+#+end_src
+
+*** ~editlastscript~ | ~runlastscript~
+The following functions are shortcuts for editing/running the latest created script.
+#+begin_src fish
+function editlastscript
+  v (get_last_script)
+end
+
+function runlastscript -a executable
+  set scriptName (get_last_script)
+
+  if test -z "$scriptName"
+    echo "No scripts found!"
+  else
+    if test -z "$executable"
+      $scriptName "$argv[2..-1]"
+    else
+      $executable $scriptName "$argv[2..-1]"
+    end
+  end
+end
+#+end_src
 * Environment Variables
 :PROPERTIES:
 :header-args:python: :tangle ./env.fish
