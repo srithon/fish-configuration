@@ -1044,6 +1044,24 @@ function searchnotes -a NOTES_REGISTRY -a FZF_HEADER
   end
 end
 #+end_src
+** =localvrc=
+#+begin_src fish
+function normalize_path -a VRC_PATH
+  if test -d "$VRC_PATH"
+    realpath "$VRC_PATH"
+  else
+    realpath "$VRC_PATH" | xargs -n1 dirname
+  end
+end
+
+function check_path_exists -a VRC_PATH
+  if test -e "$LOCAL_VIMRC_PATHS"
+    rg -Fx "$VRC_PATH" "$LOCAL_VIMRC_PATHS" > /dev/null
+  else
+    return 1
+  end
+end
+#+end_src
 * Environment Variables
 :PROPERTIES:
 :header-args:python: :tangle ./env.fish
