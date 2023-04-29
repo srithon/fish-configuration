@@ -349,7 +349,7 @@ end
 **** ~blackscreen~
 ~blackscreen~ launches a ~feh~ image viewer to black out a screen.
 #+begin_src fish
-alias blackscreen='feh --hide-pointer --class blackscreen ~/Documents/General/blackImage.png'
+alias blackscreen='feh --hide-pointer --class blackscreen --auto-zoom ~/Documents/General/blackImage.png'
 #+end_src
 *** Shell Shortcuts
 **** ~spawn~
