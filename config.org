@@ -325,27 +325,28 @@ alias integrate='qalc -c integrate'
 alias derivative='qalc -c derivative'
 #+end_src
 *** Static Shortcuts
+**** ~schedule~
 ~schedule~ opens my college schedule in an image viewer.
 #+begin_src fish
 function schedule
     spawn feh "$CURRENT_GRADE/../currentSchedule.png"
 end
 #+end_src
-
+**** ~address~
 ~address~ prints out my apartment's address to ~stdout~.
 #+begin_src fish
 function address
     cat "$CURRENT_GRADE/../address"
 end
 #+end_src
-
+**** ~resume~
 ~resume~ displays my latest resume in a PDF viewer.
 #+begin_src fish
 function resume
     spawn okular ~/Documents/Resumes/CMSC-2022/exports/SridaranThoniyil.pdf
 end
 #+end_src
-
+**** ~blackscreen~
 ~blackscreen~ launches a ~feh~ image viewer to black out a screen.
 #+begin_src fish
 alias blackscreen='feh --hide-pointer --class blackscreen ~/Documents/General/blackImage.png'
