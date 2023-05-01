@@ -125,6 +125,13 @@ end
 
 alias shutdown="zfs_sync_and_shutdown"
 #+end_src
+*** ~encvi~
+This is an abbreviation that simply calls ~[SPC]sudo encvi~.
+Unfortunately, Fish does not provide ~$HISTIGNORE~ functionality, whereby one can exclude certain commands from showing up in the history.
+Therefore, we have to resort to expanding ~encvi~ to prefix itself with a space so that it will not be recorded.
+#+begin_src fish
+abbr --add encvi ' sudo encvi'
+#+end_src
 ** System Introspection
 These functions yield information about the system from the terminal.
 *** ~memof~
