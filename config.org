@@ -71,7 +71,7 @@ end
 #+end_src
 ** Set Fzf Keybindings
 #+begin_src fish
-fzf_key_bindings
+fzf_configure_bindings
 #+end_src
 * Functions
 :PROPERTIES:
