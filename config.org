@@ -1210,8 +1210,8 @@ else
   set PATH $CUSTOM_PATHS $PATH
 end
 
-set VISUAL nvim
-set EDITOR "$VISUAL"
+set -gx VISUAL nvim
+set -gx EDITOR "$VISUAL"
 
 # https://medium.com/@sidneyliebrand/how-fzf-and-ripgrep-improved-my-workflow-61c7ca212861
 set -gx FZF_DEFAULT_COMMAND 'fd --type file --no-ignore-vcs --hidden'
