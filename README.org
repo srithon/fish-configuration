@@ -1,6 +1,6 @@
 * Fish Configuration
-This repository contains my Literate configuration for the [[Fish Shell][https://fishshell.com/]], a non-POSIX-compliant shell made primarily for interactive use.
-The configuration file [[config.org]] is written in [[Org Mode][https://orgmode.org/]], an Emacs major mode that allows interleaving prose and code within a single file.
+This repository contains my Literate configuration for the [[https://fishshell.com/][Fish Shell]], a non-POSIX-compliant shell made primarily for interactive use.
+The configuration file [[config.org]] is written in [[https://orgmode.org/][Org Mode]], an Emacs major mode that allows interleaving prose and code within a single file.
 
 The configuration can be "extracted" by running ~M-x org-babel-tangle~ in Emacs from within the file.
 This command will take the code blocks from within the config and write it to their corresponding files, relative to the current directory.
@@ -8,10 +8,9 @@ This command will take the code blocks from within the config and write it to th
 However, because my configuration refers to many things which are only present on my machine, you are undoubtedly better off copying individual code blocks into your own config, or simply taking inspiration from the structure.
 
 ** Configuration Overview
-
 Here is an overview of the configuration, extracted from the headlines of the Org file:
 
-- Preprocessor constants, which leverage Org's [[~noweb~][https://orgmode.org/manual/Noweb-Reference-Syntax.html]] syntax to interpolate values into code blocks
+- Preprocessor constants, which leverage Org's [[https://orgmode.org/manual/Noweb-Reference-Syntax.html][noweb]] syntax to interpolate values into code blocks
 - Startup code, including plugin initialization, setting Fish greeting, and Vi bindings
 - Sourcing of other config files and external files, most of which are created by tangling this configuration
 - Shell aliases, such as for ~ls~ and ~nvim~
