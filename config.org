@@ -481,6 +481,25 @@ function tempclone -d "Clones git repository into a temporary directory" -a REPO
     cd "$FULL_REPO_PATH"
 end
 #+end_src
+*** ~media-mode~
+~media-mode~ combines ~blackscreen~ with toggling ~safeeyes~.
+
+#+begin_src fish
+function media-mode -d "Disables safeeyes while blackscreen is active"
+    systemctl --user status safeeyes > /dev/null 2> /dev/null
+    set -f was_safeeyes_enabled $status
+
+    if [ $was_safeeyes_enabled -eq 0 ]
+        systemctl --user stop safeeyes
+    end
+
+    blackscreen
+
+    if [ $was_safeeyes_enabled -eq 0 ]
+        systemctl --user start safeeyes
+    end
+end
+#+end_src
 ** Miscellaneous Functions
 Because our default shell is ~zsh~... actually nevermind, we'll see
 #+begin_src fish :tangle no
