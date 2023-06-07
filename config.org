@@ -132,6 +132,11 @@ Therefore, we have to resort to expanding ~encvi~ to prefix itself with a space 
 #+begin_src fish
 abbr --add encvi ' sudo encvi'
 #+end_src
+*** ~cpufreq~
+This is an alias for ~set_cpufreq_profile~, a script that I wrote for creating a ~rofi~ popup window allowing me to choose between CPU profiles.
+#+begin_src fish
+alias cpufreq=set_cpufreq_profile
+#+end_src
 ** System Introspection
 These functions yield information about the system from the terminal.
 *** ~memof~
