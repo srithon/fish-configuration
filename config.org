@@ -137,6 +137,28 @@ This is an alias for ~set_cpufreq_profile~, a script that I wrote for creating a
 #+begin_src fish
 alias cpufreq=set_cpufreq_profile
 #+end_src
+*** ~systemctl~
+~systemctl~ can be annoying to type, so we'll make abbreviations for the common stems: ~systemctl~ and ~systemctl --user~.
+Let's write a function which will allow us to make root-level and user-level abbreviation variants for different ~systemctl~ subcommands.
+#+begin_src fish
+function __make_systemctl_abbrs -d "Makes sys and sysu abbreviations with the given suffixes" -a abbr_suffix_char command_suffix
+    abbr --add "sys$abbr_suffix_char" (string trim "systemctl $command_suffix")
+    abbr --add "sysu$abbr_suffix_char" (string trim "systemctl --user $command_suffix")
+end
+#+end_src
+
+First, we'll make the bare abbreviations ~sys~ and ~sysu~, without any subcommands.
+#+begin_src fish
+__make_systemctl_abbrs "" ""
+#+end_src
+
+Now, let's define abbreviations for the common subcommands, like ~sysu+~ for ~systemctl --user start~.
+#+begin_src fish
+__make_systemctl_abbrs "+" "start"
+__make_systemctl_abbrs "-" "stop"
+__make_systemctl_abbrs "?" "status"
+__make_systemctl_abbrs "*" "restart"
+#+end_src
 ** System Introspection
 These functions yield information about the system from the terminal.
 *** ~memof~
