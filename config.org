@@ -304,6 +304,13 @@ The ~copy~ alias allows you to pipe the results of a command into the clipboard,
 #+begin_src fish
 alias copy='tee /dev/tty | clipboard'
 #+end_src
+***** Un-googling Clipboard
+I wrote an ~ungoogle~ script for taking a Google link and extracting the original URL.
+A common operation for me is ungoogling and writing back the contents of the clipboard, so let's make an alias for that.
+We ~copy~ at the end so that the result is also displayed to ~stdout~.
+#+begin_src fish
+alias ungoogle-clipboard='clipboard | ungoogle | copy'
+#+end_src
 *** KDE Utilities
 This function enables/disables the touchpad.
 #+begin_src fish
