@@ -1208,6 +1208,9 @@ function _encvi_fish_impl -a FILE
 end
 #+end_src
 ** =at-improved=
+To allow for lazy loading of the ~at~ daemon, I added a sudoers entry which allows
+my user to start the ~atd~ service with ~sudo systemctl start atd~ without specifying
+a root password.
 *** ~do-in~
 ~do-in~ runs a command in a certain amount of time.
 Usage: ~do-in 5m "echo hello world"~
@@ -1224,6 +1227,7 @@ function do-in
       exit 1
   end
 
+  sudo systemctl start atd
   echo "$argv[2] \"$argv[3]\" \"$argv[4]\"" | at "now + $matches[2]$b"
 end
 #+end_src
@@ -1231,6 +1235,7 @@ end
 This is a specialization of ~do-in~ which uses ~notify-send~ to display a notification after a certain amount of time.
 #+begin_src fish
 function remindin
+  sudo systemctl start atd
   do-in "$argv[1]" "notify-send -u critical" "$argv[2]" "$argv[3..-1]"
 end
 #+end_src
@@ -1238,6 +1243,7 @@ end
 This function is like ~remindin~, except it takes in an absolute time rather than a relative time.
 #+begin_src fish
 function remindat
+  sudo systemctl start atd
   echo "notify-send -u critical \"$argv[2]\" \"$argv[3..-1]\"" | at "$argv[1]"
 end
 #+end_src
