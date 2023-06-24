@@ -264,6 +264,31 @@ function newkrita -a TARGET_PATH
   spawn krita "$TARGET_PATH"
 end
 #+end_src
+*** Remmina
+When opening Remmina, I often just want to open a single RDP connection, and after opening the connection I end up closing the main window.
+To make this workflow more convenient, let's make a function which will allow us to directly open an RDP connection from the terminal without going into the GUI.
+#+begin_src fish
+function remote-desktop -a PROFILE -d "Opens a remote-desktop session using the provided Remmina profile"
+    spawn remmina -c $PROFILE
+end
+#+end_src
+
+Let's add tab completion using the profiles
+#+begin_src fish
+function __remote-desktop-completion -d "Yields (file, description) pairs for `remote-desktop` function"
+    # get a list of files, and for each file extract the ~Name=~ line
+    set PROFILE_DIR ~/.local/share/remmina
+
+    set PROFILES (fd --base-directory $PROFILE_DIR . -tfile)
+    set PROFILE_NAMES (rg --no-filename --only-matching --replace '$1' '^name=(.+)' $PROFILES)
+
+    for i in (seq 1 (count $PROFILES))
+        echo -e "$PROFILES[$i]\t$PROFILE_NAMES[$i]"
+    end
+end
+
+complete -c remote-desktop -a "(__remote-desktop-completion)"
+#+end_src
 ** Desktop Utilities
 *** PDF Utilities
 This function converts a PDF to a vertical image, which all of the pages stacked.
