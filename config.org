@@ -418,6 +418,18 @@ end
 #+begin_src fish
 alias blackscreen='feh --hide-pointer --class blackscreen --auto-zoom ~/Documents/General/blackImage.png'
 #+end_src
+**** ~upip~
+A recent update in Arch Linux resulted in ~pip install --user~ no longer being allowed by default.
+This is because the user-local packages would override the system packages and cause weird issues.
+The recommended fix is to always install packages in a virtual environment, and to make that easier we'll make a shortcut for invoking the Virtual Environment's ~pip~.
+#+begin_src fish
+alias upip=~/.pip-venv/bin/pip
+#+end_src
+**** ~upython~
+Let's also make an alias for the VEnv's ~python~ install.
+#+begin_src fish
+alias upython=~/.pip-venv/bin/python
+#+end_src
 *** Shell Shortcuts
 **** ~spawn~
 ~spawn~ is an extraordinary useful function for running a command and detaching it from the terminal.
