@@ -1337,9 +1337,11 @@ function zfs-get-snapshot-path -a TARGET_PATH
 end
 #+end_src
 
-Let's make an alias to make it easier to use.
+Let's make an alias and abbreviation to make it easier to use.
 #+begin_src fish
 alias snapshot-path=zfs-get-snapshot-path
+abbr --add sp snapshot-path
+#+end_src
 #+end_src
 * Environment Variables
 :PROPERTIES:
