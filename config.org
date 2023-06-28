@@ -1290,37 +1290,22 @@ use Cwd 'realpath';
 # first, let's get the given path
 my $targetPath = realpath($ARGV[0]);
 
-# next, let's parse the ZFS output
-my @zfsMountpoints = ();
-open FD, "zfs list -H -o mountpoint |";
-while (<FD>) {
-    chomp;
-    # skip datasets with no mountpoint
-    next if ($_ =~ /^-$/);
-    push @zfsMountpoints, $_;
-}
-
-close FD;
-
-# now, let's make a regex which will match the longest prefix.
-# this regex is made up of alternatives, where earlier items have longer lengths
-# than later ones.
-my $regex = join "|", sort { length $b <=> length $a } @zfsMountpoints;
-
-# make the regex match only at the beginning.
-# the second capture group matches the path relative to the volume.
-$regex = "(^$regex)(.*)";
-
-# now, let's see which one matches
-if ($targetPath =~ $regex) {
-    # print out the volume path
-    print "$1\n";
-    # print out the path relative to the volume
-    print "$2\n";
-} else {
+my ($targetMountPoint, $sourceMountPoint, $fsType) = split " ", `findmnt --output target,source,fstype --noheadings --target $targetPath`;
+if ($fsType ne "zfs") {
     print STDERR "Path is not under a ZFS volume.\n";
     exit 1;
 }
+
+# now, let's cut out the target mountpoint from the path so we're left with the relative path
+if (!($targetPath =~ s/$targetMountPoint//)) {
+    print "Invalid target and source mountpoints!\n";
+    exit 1;
+}
+
+# print out the volume path
+print "$sourceMountPoint\n";
+# print out the path relative to the volume
+print "$targetPath\n";
 #+end_src
 
 This function will get the path of a given file or directory under a selected snapshot.
@@ -1336,7 +1321,7 @@ function zfs-get-snapshot-path -a TARGET_PATH
     set chosen_snapshot (zfs list -t snapshot $output[1] -H -o name | fzf | cut -d '@' -f 2)
 
     # now, yield
-    echo "$mountpoint/.zfs/snapshot/$chosen_snapshot$relative_path"
+    echo "/$mountpoint/.zfs/snapshot/$chosen_snapshot$relative_path"
 end
 #+end_src
 
