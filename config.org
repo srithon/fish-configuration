@@ -337,6 +337,11 @@ We ~copy~ at the end so that the result is also displayed to ~stdout~.
 #+begin_src fish
 alias ungoogle-clipboard='clipboard | ungoogle | copy'
 #+end_src
+***** Ascii-fying Clipboard
+I often want to convert the clipboard text into ASCII, so let's make an alias for that too.
+#+begin_src fish
+alias asciify-clipboard='clipboard | to-ascii | copy'
+#+end_src
 *** KDE Utilities
 This function enables/disables the touchpad.
 #+begin_src fish
