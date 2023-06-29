@@ -474,6 +474,28 @@ function jrun
   $JAVA_COMMAND
 end
 #+end_src
+**** ~to-ascii~
+This is a little snippet for converting Unicode text into ASCII.
+Source for ~$command~: [[https://stackoverflow.com/questions/1975057/bash-convert-non-ascii-characters-to-ascii][Bash: Convert non-ASCII characters to ASCII - Stack Overflow]].
+#+begin_src fish
+function to-ascii -d "Given text through STDIN or as a command-line argument, converts non-ASCII characters to ASCII"
+    set command iconv -f UTF8 -t US-ASCII//TRANSLIT
+
+    # if being piped into, then STDIN is not a tty
+    if ! isatty stdin
+        # the command will take in the text on STDIN
+        $command
+    else
+        if [ (count $argv) -ge 1 ]
+            # output each argument on a separate line
+            string join \n $argv | $command
+        else
+            echo "If you are not piping in text, please specify it as a string on the command line!" > /dev/stderr
+            return 1
+        end
+    end
+end
+#+end_src
 *** ~pagetitle~
 #+begin_src fish
 function pagetitle -a URL -d "Gets the title of the webpage linked to the provided URL"
