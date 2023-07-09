@@ -289,7 +289,7 @@ function __remote-desktop-completion -d "Yields (file, description) pairs for `r
     end
 end
 
-complete -c remote-desktop -a "(__remote-desktop-completion)"
+complete --no-files --command remote-desktop -a "(__remote-desktop-completion)"
 #+end_src
 ** Desktop Utilities
 *** PDF Utilities
