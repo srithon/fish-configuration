@@ -522,10 +522,6 @@ function pagetitle -a URL -d "Gets the title of the webpage linked to the provid
 end
 #+end_src
 *** ~templink~
-:PROPERTIES:
-:function-name: templink
-:END:
-
 ~templink~ creates a symbolic link to the specified directory at ~$TEMP_LINK_NAME~.
 This makes it easy to find directories from GUIs.
 
