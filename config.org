@@ -1325,12 +1325,26 @@ use strict;
 use warnings;
 
 use Cwd 'realpath';
+use File::Basename qw(dirname basename);
 
 # first, let's get the given path
 my $targetPath = realpath($ARGV[0]);
+my $usingParentDir = 0;
+my $fileComponent = undef;
+
+FINDMNT:
 
 my ($targetMountPoint, $sourceMountPoint, $fsType) = split " ", `findmnt --output target,source,fstype --noheadings --target $targetPath`;
-if ($fsType ne "zfs") {
+my $exitCode = $?;
+if ($exitCode != 0 || $fsType ne "zfs") {
+    if (!($usingParentDir eq 1)) {
+        $usingParentDir = 1;
+        $fileComponent = basename($targetPath);
+        $targetPath = dirname($targetPath);
+
+        goto FINDMNT;
+    }
+
     print STDERR "Path is not under a ZFS volume.\n";
     exit 1;
 }
@@ -1343,8 +1357,14 @@ if (!($targetPath =~ s/$targetMountPoint//)) {
 
 # print out the volume path
 print "$sourceMountPoint\n";
-# print out the path relative to the volume
-print "$targetPath\n";
+
+if (defined $fileComponent) {
+    # print out the path relative to the volume
+    print "${targetPath}/${fileComponent}\n";
+} else {
+    # print out the path relative to the volume
+    print "$targetPath\n";
+}
 #+end_src
 
 This function will get the path of a given file or directory under a selected snapshot.
