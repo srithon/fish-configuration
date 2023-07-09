@@ -1428,7 +1428,9 @@ set -x DOCKER_BIN ~/.local/bin
 if set -q _OLD_VIRTUAL_PATH
   set PATH $VIRTUAL_ENV/bin $_OLD_VIRTUAL_PATH
 else
-  set PATH $CUSTOM_PATHS $PATH
+  for path in $CUSTOM_PATHS
+      fish_add_path -gp $path
+  end
 end
 
 set -gx VISUAL nvim
