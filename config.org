@@ -64,7 +64,7 @@ fzf_configure_bindings
 #+end_src
 * Functions
 :PROPERTIES:
-:header-args:fish: :tangle (funcall compute-tangle-file)
+:header-args:fish: :tangle (srithon/compute-fish-config-tangle-file)
 :END:
 ** Set Fish Greeting
 #+begin_src fish
@@ -1458,46 +1458,44 @@ set -gx FrameworkPathOverride /lib/mono/4.5
 ** Compute Tangle File
 #+NAME: compute-tangle-file
 #+begin_src emacs-lisp :results none
-(setq-local
- compute-tangle-file
- (lambda ()
-   ;; if the block contains an alias, put it in the `functions.fish` file
-   ;; if the block does not contain any aliases, put it in a file corresponding to the heading title
-   (let* ((src-block (org-element-at-point-no-context))
-          (src-body (org-element-property :value src-block))
-          (contains-alias (string-match-p (rx (seq line-start (or "alias" "abbr"))) src-body)))
-     (if contains-alias
-         "impure-aliases.fish"
-       (let ((core-name (or
-                         (org-element-property :name src-block)
-                         (org-entry-get (point) "function-name" t)
-                         ;; next, parse the code block contents and find the name of the function
-                         (when
-                             (string-match
-                              (rx (seq
-                                   line-start
-                                   "function"
-                                   (+ whitespace)
-                                   (group (+ (not whitespace)))))
-                              src-body)
-                           ;; note that when `string-match` is called
-                           ;; with a string parameter, you must call
-                           ;; `match-string` with that same string
-                           (match-string 1 src-body))
-                         ;; no function, no alias, there must be a `set`
-                         (when
-                             (string-match
-                              (rx (seq line-start "set" whitespace))
-                              src-body)
-                           'env)
-                         (when-let ((heading-title (org-get-heading t t t t)))
-                           (replace-regexp-in-string
-                            (rx (+ whitespace)) "-"
-                            (downcase
-                             (replace-regexp-in-string (rx "~") "" heading-title)))))))
-         (if (eq core-name 'env)
-             "./env.fish"
-           (format "functions/%s.fish" core-name)))))))
+(defun srithon/compute-fish-config-tangle-file ()
+  ;; if the block contains an alias, put it in the `functions.fish` file
+  ;; if the block does not contain any aliases, put it in a file corresponding to the heading title
+  (let* ((src-block (org-element-at-point-no-context))
+         (src-body (org-element-property :value src-block))
+         (contains-alias (string-match-p (rx (seq line-start (or "alias" "abbr"))) src-body)))
+    (if contains-alias
+        "impure-aliases.fish"
+      (let ((core-name (or
+                        (org-element-property :name src-block)
+                        (org-entry-get (point) "function-name" t)
+                        ;; next, parse the code block contents and find the name of the function
+                        (when
+                            (string-match
+                             (rx (seq
+                                  line-start
+                                  "function"
+                                  (+ whitespace)
+                                  (group (+ (not whitespace)))))
+                             src-body)
+                          ;; note that when `string-match` is called
+                          ;; with a string parameter, you must call
+                          ;; `match-string` with that same string
+                          (match-string 1 src-body))
+                        ;; no function, no alias, there must be a `set`
+                        (when
+                            (string-match
+                             (rx (seq line-start "set" whitespace))
+                             src-body)
+                          'env)
+                        (when-let ((heading-title (org-get-heading t t t t)))
+                          (replace-regexp-in-string
+                           (rx (+ whitespace)) "-"
+                           (downcase
+                            (replace-regexp-in-string (rx "~") "" heading-title)))))))
+        (if (eq core-name 'env)
+            "./env.fish"
+          (format "functions/%s.fish" core-name))))))
 #+end_src
 ** Local Variables
 Local Variables:
