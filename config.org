@@ -26,13 +26,6 @@ Initialize ~starship~ and ~zoxide~.
 starship init fish | source
 zoxide init fish | source
 #+end_src
-** Set Fish Greeting
-#+begin_src fish
-function fish_greeting
-end
-
-funcsave fish_greeting 2> /dev/null > /dev/null
-#+end_src
 ** Set Vi Bindings
 #+begin_src fish
 function my_vi_bindings
@@ -73,6 +66,11 @@ fzf_configure_bindings
 :PROPERTIES:
 :header-args:fish: :tangle (funcall compute-tangle-file)
 :END:
+** Set Fish Greeting
+#+begin_src fish
+function fish_greeting
+end
+#+end_src
 ** Pure Aliases
 :PROPERTIES:
 :header-args:fish: :tangle ./pure-aliases.fish
