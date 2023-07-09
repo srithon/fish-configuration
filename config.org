@@ -1373,6 +1373,12 @@ function zfs-get-snapshot-path -a TARGET_PATH
     set PERL_SCRIPT_PATH ~/.config/fish/utils/zfs-snapshot-cloning/get-containing-volume.pl
 
     set output (perl $PERL_SCRIPT_PATH $TARGET_PATH | string split "\n")
+    set script_status $status
+
+    if test $script_status -ne 0
+        return $script_status
+    end
+
     set mountpoint $output[1]
     set relative_path $output[2]
 
