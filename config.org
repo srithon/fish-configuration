@@ -51,17 +51,13 @@ set fish_cursor_unknown block blink
 set fish_cursor_insert block
 set fish_cursor_replace_one underscore
 #+end_src
-** Sourcing Other Config Files
-Before sourcing our external files, let's first source our ~functions.fish~ script, which contains all of our core aliases and functions.
+** Sourcing External Files
+Let's source our alias files.
 #+begin_src fish
-source <<CONFIG_ROOT>>/functions.fish
+source <<CONFIG_ROOT>>/pure-aliases.fish
+source <<CONFIG_ROOT>>/impure-aliases.fish
 #+end_src
 
-Next, let's source our ~misc_setups.fish~ script, which contains our Literate configurations for different setups/projects.
-#+begin_src fish
-source <<CONFIG_ROOT>>/misc_setups.fish
-#+end_src
-** Sourcing External Files
 Let's source all ~fish~ files under our ~custom-functions~ directory, for things that are not tracked under our Literate configuration.
 
 #+begin_src fish
@@ -75,9 +71,13 @@ fzf_configure_bindings
 #+end_src
 * Functions
 :PROPERTIES:
-:header-args:fish: :tangle ./functions.fish
+:header-args:fish: :tangle (funcall compute-tangle-file)
 :END:
 ** Pure Aliases
+:PROPERTIES:
+:header-args:fish: :tangle ./pure-aliases.fish
+:END:
+
 =Pure= aliases do not depend on any other functions/aliases in my configuration.
 They go on the top so that the rest of the config can use them.
 *** ~ls~
@@ -265,6 +265,9 @@ function newkrita -a TARGET_PATH
 end
 #+end_src
 *** Remmina
+:PROPERTIES:
+:function-name: remote-desktop
+:END:
 When opening Remmina, I often just want to open a single RDP connection, and after opening the connection I end up closing the main window.
 To make this workflow more convenient, let's make a function which will allow us to directly open an RDP connection from the terminal without going into the GUI.
 #+begin_src fish
@@ -388,11 +391,15 @@ These are pretty much never useful but I keep them around for fun.
 function hypotenuse
     qalc "sqrt(($argv[1])^2 + ($argv[2]^2))"
 end
+#+end_src
 
+#+begin_src fish
 function simplify
   qalc $argv[1..-1] | awk -F "=|≈" '{print $(NF-1)}' | string trim
 end
+#+end_src
 
+#+begin_src fish
 alias integrate='qalc -c integrate'
 alias derivative='qalc -c derivative'
 #+end_src
@@ -515,6 +522,10 @@ function pagetitle -a URL -d "Gets the title of the webpage linked to the provid
 end
 #+end_src
 *** ~templink~
+:PROPERTIES:
+:function-name: templink
+:END:
+
 ~templink~ creates a symbolic link to the specified directory at ~$TEMP_LINK_NAME~.
 This makes it easy to find directories from GUIs.
 
@@ -607,13 +618,10 @@ function zsh
     /bin/zsh $argv
 end
 #+end_src
-* Miscellaneous Setups
-:PROPERTIES:
-:header-args:fish: :tangle ./misc_setups.fish
-:END:
-** =School=
+** Miscellaneous Setups
+*** =School=
 This is a setup for managing different course data and facilitating directory creation/navigation.
-*** ~school_set_class~
+**** ~school_set_class~
 This is a primitive for changing the currently-set "active class".
 It defaults to selecting the current class based on the =Schedule=.
 #+begin_src fish
@@ -634,7 +642,7 @@ function school_set_class
   end
 end
 #+end_src
-*** ~school_join_zoom~
+**** ~school_join_zoom~
 ~school_join_zoom~ will look for the ~./zoom_link~ file in the class directory and attempt to open the URL inside of it.
 #+begin_src fish
 function school_join_zoom
@@ -658,7 +666,7 @@ function school_join_zoom
   end
 end
 #+end_src
-*** ~school_cd~
+**** ~school_cd~
 #+begin_src fish
 function school_cd
   if set -q CLASS_FULL
@@ -672,7 +680,7 @@ function school_cd
   end
 end
 #+end_src
-*** TODO ~school_goto_subdir~
+**** TODO ~school_goto_subdir~
 This is a very involved function for cd'ing (and creating if necessary) subdirectories within class directories, and also date directories.
 _I need to refactor this and extract the date directory creation into another function_.
 #+begin_src fish
@@ -771,7 +779,7 @@ function school_goto_subdir -a BASE_NAME CREATE_DATE_DIR
   end
 end
 #+end_src
-*** ~school_fzf_filter_cd_subdirectory~
+**** ~school_fzf_filter_cd_subdirectory~
 This function is the user-facing side of ~school_goto_subdir~.
 It offers an ~fzf~ menu for ~cd~'ing to a predefined list of subdirectories, as well as the directories already in the school directory.
 It will also create directories that do not already exist.
@@ -808,13 +816,13 @@ function school_fzf_filter_cd_subdirectory -a CREATE_DATE_DIR
   end
 end
 #+end_src
-*** ~school_open_notes~
+**** ~school_open_notes~
 #+begin_src fish
 function school_open_notes
   e $CLASS_FULL/notes/(string lower $CLASS_SHORT)_notes.org
 end
 #+end_src
-*** Schedule Processing
+**** Schedule Processing
 The following functions process the schedule.
 
 This is a helper function for converting 24H time to minutes.
@@ -825,7 +833,7 @@ function __school_time_to_minutes -a TIME
 end
 #+end_src
 
-**** ~__school_compute_schedules~
+***** ~__school_compute_schedules~
 This function goes through all of the ~.schedule~ files within each course directory and assembles a chronological order of courses for each day.
 It stores these day-by-day schedules in ~$COURSE_SCHEDULE_<Day>~.
 
@@ -877,7 +885,7 @@ function __school_compute_schedules
 end
 #+end_src
 
-**** ~school_get_current_class~
+***** ~school_get_current_class~
 This function gets the current class based on the time and day.
 #+begin_src fish
 function school_get_current_class -a CURRENT_TIME -a CURRENT_DAY
@@ -915,7 +923,7 @@ function school_get_current_class -a CURRENT_TIME -a CURRENT_DAY
 end
 #+end_src
 
-**** ~school_get_previous_class~
+***** ~school_get_previous_class~
 This function gets the previous class based on the time and day.
 #+begin_src fish
 function school_get_previous_class -a CURRENT_TIME -a CURRENT_DAY
@@ -959,7 +967,7 @@ function school_get_previous_class -a CURRENT_TIME -a CURRENT_DAY
   return 1
 end
 #+end_src
-*** Aliases
+**** Aliases
 #+begin_src fish
 # change current class
 alias _sc="school_set_class"
@@ -999,10 +1007,13 @@ alias scn="school_open_notes"
 # change current class and open notes for current class
 alias _scn="school_set_class && school_open_notes"
 #+end_src
-** =Shell uptime=
+*** =Shell uptime=
 Let's set the start time as a variable, so we can see how long our shell has been running.
-#+begin_src fish
-set -g SHELL_START_TIME (date +%s)
+Note that we tangle this to ~config.fish~ so it gets sourced immediately.
+#+begin_src fish :tangle ./config.fish
+if set -q SHELL_START_TIME
+    set -g SHELL_START_TIME (date +%s)
+end
 #+end_src
 
 This is an alias which pretty-prints our start time variable.
@@ -1031,10 +1042,10 @@ function shell_uptime
   echo "$DAYS_REAL days, $HOURS_REAL hours, $MINUTES_REAL minutes, $SECONDS_REAL seconds"
 end
 #+end_src
-** =Scripts=
+*** =Scripts=
 This is a setup for easily storing one-off scripts.
 
-*** ~newscript~
+**** ~newscript~
 First, ~newscript~ creates a new script with a random name based on the parameters.
 #+begin_src fish
 function newscript
@@ -1059,7 +1070,7 @@ function newscript
 end
 #+end_src
 
-*** ~get_last_script~
+**** ~get_last_script~
 ~get_last_script~ yields the filename of the latest created script.
 #+begin_src fish
 function get_last_script
@@ -1073,7 +1084,7 @@ function get_last_script
 end
 #+end_src
 
-*** ~scripts~
+**** ~scripts~
 ~scripts~ uses ~fzf~ to filter through the scripts, opening the selected one in ~nvim~.
 #+begin_src fish
 function scripts
@@ -1085,13 +1096,15 @@ function scripts
 end
 #+end_src
 
-*** ~editlastscript~ | ~runlastscript~
+**** ~editlastscript~ | ~runlastscript~
 The following functions are shortcuts for editing/running the latest created script.
 #+begin_src fish
 function editlastscript
   v (get_last_script)
 end
+#+end_src
 
+#+begin_src fish
 function runlastscript -a executable
   set scriptName (get_last_script)
 
@@ -1106,14 +1119,16 @@ function runlastscript -a executable
   end
 end
 #+end_src
-** =Notes=
+*** =Notes=
 This setup is intended to keep track of all the different notes files I have on my system.
 The problem it's trying to solve is: I take notes on all of my projects individually, but I don't know where to find them afterwards.
 This has now been made obsolete because I started using Org Mode for everything, and keep all of my notes in ~~/notes/_~.
 #+begin_src fish
 set NOTES_REGISTRY_NAME ".notes_registry.csv"
 set MASTER_NOTES_REGISTRY "$HOME/notes/$NOTES_REGISTRY_NAME"
+#+end_src
 
+#+begin_src fish
 function registernotes -a NOTES_PATH
   # see if its already registered
   set NOTES_PATH (realpath "$NOTES_PATH")
@@ -1143,7 +1158,9 @@ function registernotes -a NOTES_PATH
 
   echo "$argv[2..] {$EXTENSION}|$NOTES_PATH" >> "$MASTER_NOTES_REGISTRY"
 end
+#+end_src
 
+#+begin_src fish
 function searchnotes -a NOTES_REGISTRY -a FZF_HEADER
   # set notes registry to master if none provided
   # https://stackoverflow.com/questions/54524521/in-fish-shell-how-to-set-a-variable-with-default-fallback
@@ -1176,7 +1193,7 @@ function searchnotes -a NOTES_REGISTRY -a FZF_HEADER
   end
 end
 #+end_src
-** =localvrc=
+*** =localvrc=
 #+begin_src fish
 function normalize_path -a VRC_PATH
   if test -d "$VRC_PATH"
@@ -1185,7 +1202,9 @@ function normalize_path -a VRC_PATH
     realpath "$VRC_PATH" | xargs -n1 dirname
   end
 end
+#+end_src
 
+#+begin_src fish
 function check_path_exists -a VRC_PATH
   if test -e "$LOCAL_VIMRC_PATHS"
     rg -Fx "$VRC_PATH" "$LOCAL_VIMRC_PATHS" > /dev/null
@@ -1194,7 +1213,7 @@ function check_path_exists -a VRC_PATH
   end
 end
 #+end_src
-** =exercism= wrapper
+*** =exercism= wrapper
 Here, we override the ~download~ subcommand for the ~exercism~ CLI.
 I believe it's because (this was a while ago) ~exercism~ downloads everything into a static path, but I like choosing where my files go.
 This version of ~exercism~ allows you to download challenges to the current directory.
@@ -1227,23 +1246,23 @@ function exercism --wraps $EXERCISM_BINARY_PATH
   end
 end
 #+end_src
-** =Encryption=
+*** =Encryption=
 This setup consists of a series of functions for editing/viewing encrypted files.
-*** ~encstream~
+**** ~encstream~
 This streams encrypted videos into ~vlc~.
 #+begin_src fish
 function encstream -a FILE
   gpg -qd --no-symkey-cache "$FILE" | vlc -
 end
 #+end_src
-*** ~encpager~
+**** ~encpager~
 This function pages encrypted files using ~less~.
 #+begin_src fish
 function encpager -a FILE
   gpg -qd --no-symkey-cache "$FILE" | less
 end
 #+end_src
-*** ~_encvi_fish_impl~
+**** ~_encvi_fish_impl~
 This is a rudimentary and insecure version of my ~encvi~ program for editing encrypted files.
 The issue with this version is that it uses ~vipe~, which works by writing files to ~/tmp~, where they are globally visible.
 #+begin_src fish
@@ -1272,11 +1291,11 @@ function _encvi_fish_impl -a FILE
   end
 end
 #+end_src
-** =at-improved=
+*** =at-improved=
 To allow for lazy loading of the ~at~ daemon, I added a sudoers entry which allows
 my user to start the ~atd~ service with ~sudo systemctl start atd~ without specifying
 a root password.
-*** ~do-in~
+**** ~do-in~
 ~do-in~ runs a command in a certain amount of time.
 Usage: ~do-in 5m "echo hello world"~
 #+begin_src fish
@@ -1296,7 +1315,7 @@ function do-in
   echo "$argv[2] \"$argv[3]\" \"$argv[4]\"" | at "now + $matches[2]$b"
 end
 #+end_src
-*** ~remindin~
+**** ~remindin~
 This is a specialization of ~do-in~ which uses ~notify-send~ to display a notification after a certain amount of time.
 #+begin_src fish
 function remindin
@@ -1304,7 +1323,7 @@ function remindin
   do-in "$argv[1]" "notify-send -u critical" "$argv[2]" "$argv[3..-1]"
 end
 #+end_src
-*** ~remindat~
+**** ~remindat~
 This function is like ~remindin~, except it takes in an absolute time rather than a relative time.
 #+begin_src fish
 function remindat
@@ -1312,9 +1331,9 @@ function remindat
   echo "notify-send -u critical \"$argv[2]\" \"$argv[3..-1]\"" | at "$argv[1]"
 end
 #+end_src
-** =zfs Snapshot Cloning=
+*** =zfs Snapshot Cloning=
 This setup allows you to easily interact with old versions of files and directories.
-*** ~zfs-get-snapshot-path~
+**** ~zfs-get-snapshot-path~
 :PROPERTIES:
 :header-args:perl: :tangle ~/.config/fish/utils/zfs-snapshot-cloning/get-containing-volume.pl
 :END:
@@ -1441,3 +1460,52 @@ set -gx FrameworkPathOverride /lib/mono/4.5
 :PROPERTIES:
 :header-args:fish: :tangle ./plugin_config.fish
 :END:
+* Buffer Setup
+** Compute Tangle File
+#+NAME: compute-tangle-file
+#+begin_src emacs-lisp :results none
+(setq-local
+ compute-tangle-file
+ (lambda ()
+   ;; if the block contains an alias, put it in the `functions.fish` file
+   ;; if the block does not contain any aliases, put it in a file corresponding to the heading title
+   (let* ((src-block (org-element-at-point-no-context))
+          (src-body (org-element-property :value src-block))
+          (contains-alias (string-match-p (rx (seq line-start (or "alias" "abbr"))) src-body)))
+     (if contains-alias
+         "impure-aliases.fish"
+       (let ((core-name (or
+                         (org-element-property :name src-block)
+                         (org-entry-get (point) "function-name" t)
+                         ;; next, parse the code block contents and find the name of the function
+                         (when
+                             (string-match
+                              (rx (seq
+                                   line-start
+                                   "function"
+                                   (+ whitespace)
+                                   (group (+ (not whitespace)))))
+                              src-body)
+                           ;; note that when `string-match` is called
+                           ;; with a string parameter, you must call
+                           ;; `match-string` with that same string
+                           (match-string 1 src-body))
+                         ;; no function, no alias, there must be a `set`
+                         (when
+                             (string-match
+                              (rx (seq line-start "set" whitespace))
+                              src-body)
+                           'env)
+                         (when-let ((heading-title (org-get-heading t t t t)))
+                           (replace-regexp-in-string
+                            (rx (+ whitespace)) "-"
+                            (downcase
+                             (replace-regexp-in-string (rx "~") "" heading-title)))))))
+         (if (eq core-name 'env)
+             "./env.fish"
+           (format "functions/%s.fish" core-name)))))))
+#+end_src
+** Local Variables
+Local Variables:
+Eval: (org-sbe "compute-tangle-file")
+End:
