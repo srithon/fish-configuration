@@ -1437,6 +1437,13 @@ Let's make an alias and abbreviation to make it easier to use.
 alias snapshot-path=zfs-get-snapshot-path
 abbr --add sp snapshot-path
 #+end_src
+**** ~zfs-remote-disconnect~
+Let's make a function to disconnect from the remote after we no longer need it.
+#+begin_src fish
+function zfs-remote-disconnect -d "Disconnects the SSHFS mount for the remote backup server."
+    umount "$ZFS_REMOTE_BACKUP_MOUNTPOINT"
+end
+#+end_src
 #+end_src
 * Environment Variables
 :PROPERTIES:
