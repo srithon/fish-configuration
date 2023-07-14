@@ -1380,9 +1380,17 @@ if (defined $fileComponent) {
 }
 #+end_src
 
+Let's make it possible to interface directly with our backup server, to get snapshots which aren't available locally.
+#+begin_src fish
+set -gx ZFS_REMOTE_BACKUP_MOUNTPOINT /tmp/kalavara-remote
+#+end_src
+
 This function will get the path of a given file or directory under a selected snapshot.
 #+begin_src fish
-function zfs-get-snapshot-path -a TARGET_PATH
+function zfs-get-snapshot-path
+    argparse -N 1 -X 1 'h/help' 'r/remote' -- $argv
+    set TARGET_PATH $argv[1]
+
     set PERL_SCRIPT_PATH ~/.config/fish/utils/zfs-snapshot-cloning/get-containing-volume.pl
 
     set output (perl $PERL_SCRIPT_PATH $TARGET_PATH | string split "\n")
@@ -1392,14 +1400,35 @@ function zfs-get-snapshot-path -a TARGET_PATH
         return $script_status
     end
 
-    set mountpoint $output[1]
+    set mountpoint /$output[1]
     set relative_path $output[2]
 
-    # now, pick a snapshot
-    set chosen_snapshot (zfs list -t snapshot $output[1] -H -o name | fzf | cut -d '@' -f 2)
+    if set -q _flag_remote
+        set root_remote_path (zfs get -Ho value "kalavara:root-remote-path" "$mountpoint")
+        set dataset_remote_path (zfs get -Ho value "kalavara:remote-path" "$mountpoint")
+
+        if not test -e "$ZFS_REMOTE_BACKUP_MOUNTPOINT"
+            # we use --mountpoint instead of --target to only match exact path
+            or not findmnt --mountpoint "$ZFS_REMOTE_BACKUP_MOUNTPOINT" > /dev/null
+            mkdir -p "$ZFS_REMOTE_BACKUP_MOUNTPOINT"
+
+            # then, let's mount it read-only
+            # https://stackoverflow.com/questions/35830509/sshfs-linux-how-to-mount-with-read-only-access
+            sshfs kalavara_external:"$root_remote_path/.mounts" "$ZFS_REMOTE_BACKUP_MOUNTPOINT" -o ro || return 1
+        end
+
+        set mountpoint "$ZFS_REMOTE_BACKUP_MOUNTPOINT/$dataset_remote_path"
+
+        # if remote, then let's list all of the bookmarks.
+        # the consecutive cuts are necessary since cut can't take in a full string as a delimeter
+        set chosen_snapshot (zfs list -t bookmark $output[1] -H -o name | fzf | cut -d '#' -f 2 | cut -d '_' -f 2-)
+    else
+        # now, pick a snapshot
+        set chosen_snapshot (zfs list -t snapshot $output[1] -H -o name | fzf | cut -d '@' -f 2)
+    end
 
     # now, yield
-    echo "/$mountpoint/.zfs/snapshot/$chosen_snapshot$relative_path"
+    echo "$mountpoint/.zfs/snapshot/$chosen_snapshot$relative_path"
 end
 #+end_src
 
