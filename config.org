@@ -618,6 +618,8 @@ function media-mode -d "Disables safeeyes while blackscreen is active"
     systemctl --user status safeeyes > /dev/null 2> /dev/null
     set -f was_safeeyes_enabled $status
 
+    set start_time (date +%s)
+
     if [ $was_safeeyes_enabled -eq 0 ]
         systemctl --user stop safeeyes
     end
@@ -627,6 +629,10 @@ function media-mode -d "Disables safeeyes while blackscreen is active"
     if [ $was_safeeyes_enabled -eq 0 ]
         systemctl --user start safeeyes
     end
+
+    set end_time (date +%s)
+
+    echo "Closed media-mode after $(format-seconds (math "$end_time - $start_time"))"
 end
 #+end_src
 ** Miscellaneous Functions
