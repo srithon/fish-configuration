@@ -506,6 +506,31 @@ function to-ascii -d "Given text through STDIN or as a command-line argument, co
     end
 end
 #+end_src
+**** ~format-seconds~
+#+begin_src fish
+function format-seconds -d "Given a certain number of seconds, formats it into larger time units" -a SECONDS
+  set -l SECONDS_REAL (math $SECONDS % 60)
+
+  set -l MINUTES_TOTAL (math "$SECONDS / 60")
+  set -l MINUTES_REAL (math "floor($SECONDS / 60) % 60")
+
+  set -l HOURS_TOTAL (math "$MINUTES_TOTAL / 60")
+  set -l HOURS_REAL (math "floor($MINUTES_TOTAL / 60) % 60")
+
+  set -l DAYS_REAL (math "floor($HOURS_TOTAL / 24) % 24")
+
+  set -l return_list
+  for unit in days hours minutes seconds
+      set -l varname "$(echo $unit | string upper)_REAL"
+
+      if test $$varname -ne 0
+          set -a return_list "$$varname $unit"
+      end
+  end
+
+  echo (string join ', ' $return_list)
+end
+#+end_src
 *** ~pagetitle~
 #+begin_src fish
 function pagetitle -a URL -d "Gets the title of the webpage linked to the provided URL"
@@ -1021,19 +1046,7 @@ function shell_uptime
   set -l CURRENT_TIME (date +%s)
   set -l TIME_ELAPSED (math "$CURRENT_TIME - $SHELL_START_TIME")
 
-  set -l SECONDS $TIME_ELAPSED
-  set -l SECONDS_REAL (math $TIME_ELAPSED % 60)
-
-  set -l MINUTES_TOTAL (math "$SECONDS / 60")
-  set -l MINUTES_REAL (math "floor($SECONDS / 60) % 60")
-
-  set -l HOURS_TOTAL (math "$MINUTES_TOTAL / 60")
-  set -l HOURS_REAL (math "floor($MINUTES_TOTAL / 60) % 60")
-
-  # set -l DAYS (math "$HOURS_TOTAL / 24")
-  set -l DAYS_REAL (math "floor($HOURS_TOTAL / 24) % 24")
-
-  echo "$DAYS_REAL days, $HOURS_REAL hours, $MINUTES_REAL minutes, $SECONDS_REAL seconds"
+  format-seconds "$TIME_ELAPSED"
 end
 #+end_src
 *** =Scripts=
