@@ -1005,7 +1005,7 @@ alias _scn="school_set_class && school_open_notes"
 Let's set the start time as a variable, so we can see how long our shell has been running.
 Note that we tangle this to ~config.fish~ so it gets sourced immediately.
 #+begin_src fish :tangle ./config.fish
-if set -q SHELL_START_TIME
+if not set -q SHELL_START_TIME
     set -g SHELL_START_TIME (date +%s)
 end
 #+end_src
