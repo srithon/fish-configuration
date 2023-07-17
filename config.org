@@ -1463,6 +1463,95 @@ function zfs-remote-disconnect -d "Disconnects the SSHFS mount for the remote ba
     umount "$ZFS_REMOTE_BACKUP_MOUNTPOINT"
 end
 #+end_src
+*** =Temporary Backups=
+This is a setup for easily backing up and restoring files or folders by saving them to ~/tmp~.
+#+begin_src fish
+set -gx "TEMP_BACKUP_DIRECTORY" "/tmp/temp-backups"
+#+end_src
+
+**** ~__compute-temp-backup-path~
+Let's write a helper function for computing the backup path for a given path.
+#+begin_src fish
+function __compute-temp-backup-path -a TARGET_PATH
+    set encoded_path (string escape --style=url "$(realpath "$TARGET_PATH")" | sed 's:/:%:g')
+
+    echo "$TEMP_BACKUP_DIRECTORY/$encoded_path"
+end
+#+end_src
+**** ~temp-backup~
+First, we'll write the function for backing up the paths.
+#+begin_src fish
+function temp-backup -d "Backs up the specified file/folder to a temporary location" -a TARGET_PATH
+    if [ -z "$TARGET_PATH" ]
+        echo "Defaulting to '.'"
+        set TARGET_PATH "."
+    end
+
+    set backup_path (__compute-temp-backup-path "$TARGET_PATH")
+
+    mkdir -p (dirname "$backup_path")
+
+    # signal that's it's a directory if it's a directory;
+    # this helps with `rsync`, preventing it from copying the raw directory and
+    # instead copying the contents
+    if [ -d "$TARGET_PATH" ]
+        set TARGET_PATH "$TARGET_PATH/"
+    end
+
+    # effectively copies anything over to the backup path that's changed
+    rsync -ra --delete --delete-delay "$TARGET_PATH" "$backup_path"
+end
+#+end_src
+**** ~temp-restore~
+Next, we'll write the function for restoring them.
+#+begin_src fish
+function temp-restore -d "Restores the specified file/folder from a temporary location"
+    argparse 'h/help' 'd/delete-stale' 'q/quiet' -- $argv
+    or return 1
+
+    set TARGET_PATH $argv[1]
+    if [ -z "$TARGET_PATH" ]
+        echo "Defaulting to '.'"
+        set TARGET_PATH "."
+    end
+
+    # default to update only;
+    # NOTE: argparse normalizes dash characters to underscores
+    if not set -q _flag_delete_stale
+        # then, update only
+        set mode "update-only"
+    else
+        set mode "delete-stale"
+    end
+
+    set realpath_target (realpath "$TARGET_PATH")
+    set backup_path (__compute-temp-backup-path "$TARGET_PATH")
+
+    if [ -e "$backup_path" ]
+        # delete what we're about to restore
+        if [ "$mode" = "delete-stale" ]
+            # https://superuser.com/questions/1425614/rsync-delete-folders-from-destination-if-does-not-exists-in-source.
+            # `delete` signals to delete anything on the receiving end not present in the source.
+            # `--delete-delay` says to compute the list of files to delete during the copy, and then delete them afterwards.
+            set extra_rsync_args "--delete" "--delete-delay"
+        else
+            set extra_rsync_args
+        end
+
+        if not set -q _flag-quiet
+            set --append extra_rsync_args -v
+        end
+
+        if [ -d "$backup_path" ]
+            set backup_path "$backup_path/"
+        end
+
+        rsync -ra $extra_rsync_args "$backup_path" "$realpath_target"
+    else
+        echo "No backup exists!" > /dev/stderr
+        return 1
+    end
+end
 #+end_src
 * Environment Variables
 :PROPERTIES:
