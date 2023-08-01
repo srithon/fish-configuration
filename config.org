@@ -116,9 +116,33 @@ alias termshot='firejail --quiet termshot'
 #+end_src
 *** ~shutdown~
 I have ~shutdown~ aliased to first prompt to send my snapshots to my backup server before shutting down.
+*NOTE*: with the current ~argparse~ implementation, we can't do things like ~shutdown -nc~ and expect it to work normally; this is because ~argparse~ doesn't allow us to mix foreign and accepted options in a single dash group when we have the ~--ignore-unknown~ flag enabled.
+In the future, we should refactor this function so that it doesn't use ~argparse~.
 #+begin_src fish
 function zfs_sync_and_shutdown -d "Prompts for ZFS sync and then shuts down"
-    sudo ~/Development/General/kalavara/send_snapshots.sh && /sbin/shutdown now
+    argparse --ignore-unknown 'h/help' 'n/no-sync' -- $argv
+
+    set continue_shutdown 1
+    # NOTE: argparse transliterates dashes to underscores
+    if not set -q _flag_no_sync
+        and not sudo ~/Development/General/kalavara/send_snapshots.sh
+        set continue_shutdown 0
+    end
+
+    if test $continue_shutdown -eq 1
+        # now, if the last argument in $argv starts with a dash, then infer that
+        # there is no time specification and that we should instead shutdown `now`
+        set shutdown_time
+        if not test (count $argv) -gt 0
+            # treat the last thing in $argv as the time spec;
+            # NOTE: we have to use -- so that the string doesn't get treated as
+            # an option for string match
+            or string match --regex '^-' -- $argv[-1] > /dev/null
+            set shutdown_time 'now'
+        end
+
+        /sbin/shutdown $argv $shutdown_time
+    end
 end
 
 alias shutdown="zfs_sync_and_shutdown"
