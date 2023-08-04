@@ -1533,6 +1533,11 @@ function temp-backup -d "Backs up the specified file/folder to a temporary locat
     rsync -ra --delete --delete-delay "$TARGET_PATH" "$backup_path"
 end
 #+end_src
+
+Let's add an abbreviation to make it easier to type.
+#+begin_src fish
+abbr --add tb 'temp-backup'
+#+end_src
 **** ~temp-restore~
 Next, we'll write the function for restoring them.
 #+begin_src fish
