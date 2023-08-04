@@ -447,6 +447,13 @@ function resume
     spawn okular ~/Documents/Resumes/CMSC-2022/exports/SridaranThoniyil.pdf
 end
 #+end_src
+**** ~transcript~
+~transcript~ displays my latest unofficial transcript.
+#+begin_src fish
+function transcript
+    spawn okular ~/Documents/school/college2/general/transcripts/07-06-23_unofficial.pdf
+end
+#+end_src
 **** ~blackscreen~
 ~blackscreen~ launches a ~feh~ image viewer to black out a screen.
 #+begin_src fish
