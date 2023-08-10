@@ -444,16 +444,110 @@ function address
 end
 #+end_src
 **** ~resume~
+:PROPERTIES:
+:perl-script-path: ~/.config/fish/utils/resume-searching/search_resume.pl
+:END:
 ~resume~ displays my latest resume in a PDF viewer.
-#+begin_src fish
+If provided with one or more arguments, joins the arguments on a space, and searches for the first section matching the resultant string as a regex, ignoring case.
+#+begin_src fish :noweb yes
 function resume
-    set path ~/Documents/Resumes/CMSC-2022/exports/SridaranThoniyil.pdf
+    set git_root ~/Documents/Resumes/CMSC-2022
+    set path $git_root/exports/SridaranThoniyil.pdf
+
     if status is-command-substitution
         echo $path
+    else if test (count $argv) -gt 0
+        # then, invoke resume searcher
+        perl ~/.config/fish/utils/resume-searching/search_resume.pl $git_root $argv
     else
         spawn okular $path
     end
 end
+#+end_src
+***** Resume Searching
+:LOGBOOK:
+CLOCK: [2023-08-10 Thu 10:57]--[2023-08-10 Thu 12:42] =>  1:45
+:END:
+- Match lines with ~\resumeProjectHeading~ or ~\resumeSubheading~.
+  - for each, search between line and ~resumeListItemStart~ for provided regex,
+    then consume until ~resumeItemListEnd~ if matching
+#+begin_src perl :comments link :tangle (org-entry-get (point) "perl-script-path" t)
+use strict;
+# use warnings;
+# use diagnostics;
+
+use Cwd 'abs_path';
+use File::Basename 'basename';
+use Text::Balanced 'extract_bracketed';
+
+# ensure that we have at least 2 arguments;
+# NOTE: $@ARGV is not valid syntax; either use @ in a scalar context to
+# automatically coerce, use `(scalar @ARGV)` or `my $foo = @ARGV; $foo`
+die "Expected first arg: git path to resume, remaining args: words to match
+against section" unless @ARGV >= 2;
+
+# NOTE: in order to destructure, you need parentheses around LHS
+(my $gitPath, my @regexWords) = @ARGV;
+
+# first, verify that $gitPath is a valid path;
+# NOTE: in Perl, use parens to enclose tests rather than [] like in Bash
+( -e "$gitPath/.git" ) or die "Provided git path doesn't exist";
+
+# first, create regex from args
+my $regex = join " ", @regexWords;
+
+# now, let's determine the active commit
+my $resumeFilename = basename(abs_path("$gitPath/exports/SridaranThoniyil.pdf"));
+my $pattern = qr/_(.+)\.pdf/;
+
+$resumeFilename =~ $pattern or die "Failed pattern";
+my $commit = $1;
+
+# now that we have the active commit, let's get a handle to `jakesResume.tex` from that commit.
+chdir $gitPath;
+# NOTE: syntax is NOT `my $tex = open ...`
+open my $tex, "git show $commit:jakesResume.tex |";
+
+my $inSearchSection = 0;
+my $itemListStart = qr/\\resumeItemListStart/;
+while (<$tex>) {
+    if (($_ =~ qr/\\resumeProjectHeading/) or ($_ =~ qr/\\resumeSubheading/)) {
+        $inSearchSection = 1;
+    } elsif ($_ =~ $itemListStart) {
+        $inSearchSection = 0;
+    } elsif ($inSearchSection) {
+        # source: https://www.perlmonks.org/?node_id=1191670 (case-insensitive regex)
+        if ($_ =~ /$regex/i) {
+            # consume until item list start
+            until (<$tex> =~ $itemListStart) {}
+            last;
+        }
+    }
+}
+
+my @resumeItems = ();
+# now, let's consume until \resumeItemListEnd
+while (<$tex>) {
+    if ($_ =~ qr/\\resumeItemListEnd/) {
+        last;
+    } else {
+        chomp;
+
+        # extract text from resume item
+        # first, before passing into extract_bracketed, we need to cut out
+        # everything before the opening curly brace.
+        $_ =~ s/\\resumeItem\{/{/;
+        my $text = extract_bracketed($_, "{}");
+        # source: https://www.perlmonks.org/?node_id=11122798 (removing first
+        # and last char)
+        push @resumeItems, (substr $text, 1, -1);
+    }
+}
+
+# finally, let's output
+my $res = join "\n", map { "• $_" } @resumeItems;
+print $res;
+print "\n";
 #+end_src
 **** ~transcript~
 ~transcript~ displays my latest unofficial transcript.
