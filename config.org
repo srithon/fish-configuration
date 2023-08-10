@@ -444,14 +444,24 @@ end
 ~resume~ displays my latest resume in a PDF viewer.
 #+begin_src fish
 function resume
-    spawn okular ~/Documents/Resumes/CMSC-2022/exports/SridaranThoniyil.pdf
+    set path ~/Documents/Resumes/CMSC-2022/exports/SridaranThoniyil.pdf
+    if status is-command-substitution
+        echo $path
+    else
+        spawn okular $path
+    end
 end
 #+end_src
 **** ~transcript~
 ~transcript~ displays my latest unofficial transcript.
 #+begin_src fish
 function transcript
-    spawn okular ~/Documents/school/college2/general/transcripts/07-06-23_unofficial.pdf
+    set path ~/Documents/school/college2/general/transcripts/07-06-23_unofficial.pdf
+    if status is-command-substitution
+        echo $path
+    else
+        spawn okular $path
+    end
 end
 #+end_src
 **** ~blackscreen~
