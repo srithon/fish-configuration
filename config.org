@@ -426,6 +426,9 @@ alias integrate='qalc -c integrate'
 alias derivative='qalc -c derivative'
 #+end_src
 *** Static Shortcuts
+:PROPERTIES:
+:ID:       a740b499-13b5-4988-ab9c-8e47ce9ff69d
+:END:
 **** ~schedule~
 ~schedule~ opens my college schedule in an image viewer.
 #+begin_src fish
@@ -616,6 +619,12 @@ end
 Because I use it so often, it's useful to have an auto-expanding abbreviation for it.
 #+begin_src fish
 abbr --add tl templink
+#+end_src
+
+Let's also make an abbreviation for temp-linking to the parent directory of something.
+This is useful in conjunction with our [[id:a740b499-13b5-4988-ab9c-8e47ce9ff69d][Static Shortcuts]], since we can link to the directory containing the filepaths.
+#+begin_src fish
+abbr --set-cursor=% --add tld 'templink (dirname %)'
 #+end_src
 *** ~tempdir~
 #+begin_src fish
