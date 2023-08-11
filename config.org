@@ -554,6 +554,19 @@ my $res = join "\n", map { "• $_" } @resumeItems;
 print $res;
 print "\n";
 #+end_src
+**** ~linkedin~
+#+begin_src fish
+function linkedin -d "Prints out our Linkedin URL. If not called in a pipe, also copies it to clipboard."
+    set url "https://www.linkedin.com/in/sridaran-thoniyil"
+
+    if isatty stdin
+        # then, not called in pipe
+        echo $url | copy
+    else
+        echo $url
+    end
+end
+#+end_src
 **** ~transcript~
 ~transcript~ displays my latest unofficial transcript.
 #+begin_src fish
