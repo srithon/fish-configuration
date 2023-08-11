@@ -451,6 +451,8 @@ end
 If provided with one or more arguments, joins the arguments on a space, and searches for the first section matching the resultant string as a regex, ignoring case.
 #+begin_src fish :noweb yes
 function resume
+    argparse 'c/commit=' -- $argv
+
     set git_root ~/Documents/Resumes/CMSC-2022
     set path $git_root/exports/SridaranThoniyil.pdf
 
@@ -458,7 +460,7 @@ function resume
         echo $path
     else if test (count $argv) -gt 0
         # then, invoke resume searcher
-        perl ~/.config/fish/utils/resume-searching/search_resume.pl $git_root $argv
+        perl ~/.config/fish/utils/resume-searching/search_resume.pl "$git_root" "$_flag_commit" $argv
     else
         spawn okular $path
     end
@@ -484,10 +486,10 @@ use Text::Balanced 'extract_bracketed';
 # NOTE: $@ARGV is not valid syntax; either use @ in a scalar context to
 # automatically coerce, use `(scalar @ARGV)` or `my $foo = @ARGV; $foo`
 die "Expected first arg: git path to resume, remaining args: words to match
-against section" unless @ARGV >= 2;
+against section" unless @ARGV >= 3;
 
 # NOTE: in order to destructure, you need parentheses around LHS
-(my $gitPath, my @regexWords) = @ARGV;
+(my $gitPath, my $specifiedCommit, my @regexWords) = @ARGV;
 
 # first, verify that $gitPath is a valid path;
 # NOTE: in Perl, use parens to enclose tests rather than [] like in Bash
@@ -496,17 +498,20 @@ against section" unless @ARGV >= 2;
 # first, create regex from args
 my $regex = join " ", @regexWords;
 
-# now, let's determine the active commit
-my $resumeFilename = basename(abs_path("$gitPath/exports/SridaranThoniyil.pdf"));
-my $pattern = qr/_(.+)\.pdf/;
+# if user didn't specify a commit, then use one
+if (-z $specifiedCommit) {
+    # now, let's determine the active commit
+    my $resumeFilename = basename(abs_path("$gitPath/exports/SridaranThoniyil.pdf"));
+    my $pattern = qr/_(.+)\.pdf/;
 
-$resumeFilename =~ $pattern or die "Failed pattern";
-my $commit = $1;
+    $resumeFilename =~ $pattern or die "Failed pattern";
+    $specifiedCommit = $1;
+}
 
 # now that we have the active commit, let's get a handle to `jakesResume.tex` from that commit.
 chdir $gitPath;
 # NOTE: syntax is NOT `my $tex = open ...`
-open my $tex, "git show $commit:jakesResume.tex |";
+open my $tex, "git show $specifiedCommit:jakesResume.tex |";
 
 my $inSearchSection = 0;
 my $itemListStart = qr/\\resumeItemListStart/;
