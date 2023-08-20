@@ -571,7 +571,7 @@ end
 ~transcript~ displays my latest unofficial transcript.
 #+begin_src fish
 function transcript
-    set path ~/Documents/school/college2/general/transcripts/07-06-23_unofficial.pdf
+    set path ~/Documents/school/college2/general/transcripts/Sridaran_Thoniyil_Transcript_07-06-23_unofficial.pdf
     if status is-command-substitution
         echo $path
     else
