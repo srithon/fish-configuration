@@ -460,7 +460,8 @@ function resume
         echo $path
     else if test (count $argv) -gt 0
         # then, invoke resume searcher
-        perl <<GET("perl-script-path")>> "$git_root" "$_flag_commit" $argv
+        set pipe_command (if isatty stdin; echo "copy"; else; echo "tee"; end)
+        perl <<GET("perl-script-path")>> "$git_root" "$_flag_commit" $argv | $pipe_command
     else
         spawn okular $path
     end
