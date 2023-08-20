@@ -454,7 +454,7 @@ function resume
     argparse 'c/commit=' -- $argv
 
     set git_root ~/Documents/Resumes/CMSC-2022
-    set path $git_root/exports/SridaranThoniyil.pdf
+    set path $git_root/exports/Sridaran_Thoniyil_Resume.pdf
 
     if status is-command-substitution
         echo $path
@@ -501,7 +501,7 @@ my $regex = join " ", @regexWords;
 # if user didn't specify a commit, then use one
 if (-z $specifiedCommit) {
     # now, let's determine the active commit
-    my $resumeFilename = basename(abs_path("$gitPath/exports/SridaranThoniyil.pdf"));
+    my $resumeFilename = basename(abs_path("$gitPath/exports/Sridaran_Thoniyil_Resume.pdf"));
     my $pattern = qr/_(.+)\.pdf/;
 
     $resumeFilename =~ $pattern or die "Failed pattern";
