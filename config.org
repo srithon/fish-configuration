@@ -1810,6 +1810,18 @@ set -gx FrameworkPathOverride /lib/mono/4.5
             "./env.fish"
           (format "functions/%s.fish" core-name))))))
 #+end_src
+** Evaluating Lisp with noweb
+#+NAME: EVAL
+#+begin_src emacs-lisp :var lisp=nil
+(eval lisp)
+#+end_src
+*** Get local property
+This Noweb block allows you to interpolate properties from the local subtree.
+It relies on advice on ~org-babel-expand-noweb-references~ which I added in my personal config.
+#+NAME: GET
+#+begin_src emacs-lisp :var property-name=""
+(org-entry-get (srithon/org-noweb-last-point) property-name t)
+#+end_src
 ** Local Variables
 Local Variables:
 Eval: (org-sbe "compute-tangle-file")
