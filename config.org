@@ -460,7 +460,7 @@ function resume
         echo $path
     else if test (count $argv) -gt 0
         # then, invoke resume searcher
-        perl ~/.config/fish/utils/resume-searching/search_resume.pl "$git_root" "$_flag_commit" $argv
+        perl <<GET("perl-script-path")>> "$git_root" "$_flag_commit" $argv
     else
         spawn okular $path
     end
