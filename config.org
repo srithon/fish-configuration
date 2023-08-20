@@ -560,12 +560,10 @@ print "\n";
 function linkedin -d "Prints out our Linkedin URL. If not called in a pipe, also copies it to clipboard."
     set url "https://www.linkedin.com/in/sridaran-thoniyil"
 
-    if isatty stdin
-        # then, not called in pipe
-        echo $url | copy
-    else
-        echo $url
-    end
+    # if called from pipe, pipe into tee (no-op); otherwise pipe into copy
+    set pipe_command (if isatty stdin; echo "copy"; else; echo "tee"; end)
+
+    echo $url | $pipe_command
 end
 #+end_src
 **** ~transcript~
