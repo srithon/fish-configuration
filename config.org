@@ -189,6 +189,11 @@ __make_systemctl_abbrs "/" "status"
 __make_systemctl_abbrs "*" "restart"
 __make_systemctl_abbrs "8" "restart"
 #+end_src
+*** ~brightness_control~
+This is a pain to type, so let's abbreviate it to ~bctl~.
+#+begin_src fish
+abbr --add bctl brightness_control
+#+end_src
 ** System Introspection
 These functions yield information about the system from the terminal.
 *** ~memof~
