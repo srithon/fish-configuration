@@ -175,11 +175,19 @@ __make_systemctl_abbrs "" ""
 #+end_src
 
 Now, let's define abbreviations for the common subcommands, like ~sysu+~ for ~systemctl --user start~.
+For typing convenience, for every abbreviation that requires a shifted character, we also add an abbreviation with the unshifted version.
+For ~start~, rather than adding the unshifted ~=~ alias, we use ~]~ because for some reason the ~=~ alias does not expand.
 #+begin_src fish
 __make_systemctl_abbrs "+" "start"
+__make_systemctl_abbrs "]" "start"
+
 __make_systemctl_abbrs "-" "stop"
+
 __make_systemctl_abbrs "?" "status"
+__make_systemctl_abbrs "/" "status"
+
 __make_systemctl_abbrs "*" "restart"
+__make_systemctl_abbrs "8" "restart"
 #+end_src
 ** System Introspection
 These functions yield information about the system from the terminal.
