@@ -80,7 +80,7 @@ end
 They go on the top so that the rest of the config can use them.
 *** ~ls~
 #+begin_src fish
-alias ls="exa"
+alias ls="exa -F"
 alias l="ls -l"
 alias la="l -a"
 #+end_src
