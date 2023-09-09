@@ -125,13 +125,12 @@ function zfs_sync_and_shutdown -d "Prompts for ZFS sync and then shuts down"
     set continue_shutdown 1
     # NOTE: argparse transliterates dashes to underscores
     if not set -q _flag_no_sync
-        and not sudo ~/Development/General/kalavara/send_snapshots.sh
+        and not sudo ~/Development/General/kalavara/force_snapshots.sh
+        or not sudo ~/Development/General/kalavara/send_snapshots.sh
         set continue_shutdown 0
     end
 
     if test $continue_shutdown -eq 1
-        sudo ~/Development/General/kalavara/force_snapshots.sh
-
         # now, if the last argument in $argv starts with a dash, then infer that
         # there is no time specification and that we should instead shutdown `now`
         set shutdown_time
